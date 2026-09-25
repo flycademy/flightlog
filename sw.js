@@ -1,5 +1,5 @@
 /* FlyCademy FlightLog — Offline-Speicher (Service Worker) */
-const CACHE = "fcy-fl-2026-09-25w";
+const CACHE = "fcy-fl-2026-09-25x";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png",
   "icon-maskable-512.png", "apple-touch-icon.png", "jspdf.umd.min.js", "html2canvas.min.js"];
 
@@ -28,14 +28,6 @@ self.addEventListener("fetch", e => {
     e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => {
       if (res.ok){ const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
       return res;
-    })));
-    return;
-  }
-  /* Schriften: Speicher bevorzugen, im Hintergrund auffrischen */
-  if (/(^|\.)fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)){
-    e.respondWith(caches.open(CACHE).then(c => c.match(req).then(hit => {
-      const net = fetch(req).then(res => { c.put(req, res.clone()); return res; }).catch(() => hit);
-      return hit || net;
     })));
     return;
   }

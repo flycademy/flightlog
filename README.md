@@ -1,6 +1,6 @@
 # FlyCademy Flight Log — Web-App
 
-Stand: Build 2026-09-25w
+Stand: Build 2026-09-25x
 
 ## Einmalig einrichten (GitHub Pages)
 
@@ -34,3 +34,8 @@ Die App holt sich die neue Version beim nächsten Start mit Internetverbindung a
 - **PDF auf iPhone/iPad:** „Drucken / PDF" bzw. „Kniebrett-Log" erzeugt das PDF direkt in der App
   → **Teilen / In Dateien sichern** (Dateien, Mail, AirDrop, Drucker). Am Computer öffnet sich wie gewohnt der Druckdialog.
 - **Offline:** Die App selbst startet ohne Netz; Wetter, Höhenwinde, Karte und MSA-Gelände brauchen Internet.
+- **Lizenzen:** Quellenangaben stehen in der App unter „Quellen & Lizenzen" (Seitenende), die Lizenztexte der
+  enthaltenen Software zusätzlich in `THIRD-PARTY-LICENSES.txt`. Schriften sind eingebettet — keine Verbindung zu Google.
+- **Open-Meteo (Modellwetter, Höhenwinde, Gelände, Ortssuche):** Der kostenlose Zugang ist nur für nicht-kommerzielle
+  Nutzung bzw. Erprobung gedacht. Mit einem Open-Meteo-Abo den Schlüssel unter „Einstellungen" (Seitenende) eintragen —
+  er wird nur auf dem jeweiligen Gerät gespeichert und nie hochgeladen.
