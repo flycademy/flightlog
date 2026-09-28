@@ -131,6 +131,15 @@
     .tblwrap{-webkit-overflow-scrolling:touch}
   }
 .fuelwrap{border:0;border-radius:0}
+.navwarn{margin:10px 0 0;font-size:13px}
+.navwarn .nw-bad{border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:8px 12px}
+.navwarn .nw-bad ul{margin:4px 0 0;padding-left:18px}
+.navwarn .nw-info{color:var(--muted);margin-bottom:6px}
+.chk li.caut{color:#b45309}
+.chk li.info{color:var(--muted);font-weight:400}
+td.calc.incl{color:var(--warn)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .chk li.caut{color:#F0A54A} }
+:root[data-theme="dark"] .chk li.caut{color:#F0A54A}
 .srcline{margin:14px 0 0;font-size:11.5px;color:var(--mut)}
 .srcline a,footer a,.legal a{color:inherit}
 footer{font-size:12.5px;color:var(--mut)}
@@ -1123,6 +1132,7 @@ input.dflt{color:var(--mut)}
         </tfoot>
       </table>
     </div>
+    <div id="navWarn" class="navwarn" hidden></div>
     <div class="profbox">
       <div class="profhead"><strong>Steig-/Sinkprofil</strong> <button class="qm" type="button" aria-label="Erklärung" data-help="TOC/TOD werden automatisch berechnet. Steigflug zweiphasig: mit Vy bis zur eingestellten Höhe über Platz (Steigrate aus FHB/AFM, nimmt mit der Höhe ab), danach Reisesteigflug mit der eingestellten IAS und reduzierter Steigrate — oder mit einer eigenen Rate im Feld „mit … ft/min“. Wind des jeweiligen Legs. Step-Climbs entstehen bei jeder Höhenerhöhung zwischen Legs (im Reisesteigflug), Zwischensinkflüge enden am Wegpunkt der neuen Höhe. Schluss-TOD sinkt mit der eingestellten Sinkrate auf 1000 ft über DEST-Platzhöhe; „Höhe erreicht … NM vorher“ legt die Sinkflüge um diese Strecke nach vorn. Leg-Zeiten berücksichtigen die Steigphasen mit Steig-GS.">?</button></div>
     <div class="profrow" id="profRow">
@@ -1631,6 +1641,7 @@ const AIRCRAFT = {
     climb:{vy:66, cc:80, k:0.85, rows:[[0,645],[2000,640],[4000,635],[6000,625],[8000,495],[10000,365]],
       src:"FHB 5.3.8 Startsteigflug (Vy 66 KIAS, Klappen T/O, 1150 kg, ISA — Grafik digitalisiert); Reisesteigflug 80 KIAS = Vy-Steigrate × 0,85 (Betreiberansatz; FHB 5.3.9 zeigt bei 73 KIAS/Klappen UP ≈ 0,86 × Vy)"}, fuelArm:2630, density:0.84, taxiL:3,
     mtow:1150, maxFuelL:106, aftArm:2590, maemOption:true,
+    ballast:{kg:20, arm:3650, share:"Gepäck", label:"Ballast 2 × 10 kg Sandsack (Gepäckraum)"},
     cruise:{unit:"% Load", default:70, settings:[60,70,80,90,100],
       data:{"60":[[0,106.2],[2000,107.9],[4000,109.5],[6000,111.2],[8000,112.8],[10000,114.4],[12000,116.1]],
             "70":[[0,115.3],[2000,117.1],[4000,119.1],[6000,121.1],[8000,123.2],[10000,125.3],[12000,127.3]],
@@ -1764,7 +1775,7 @@ const AIRCRAFT = {
 
 const LS_KEY = "fcy-flightlog-draft-v2";
 const $ = id => document.getElementById(id);
-const BUILD = "2026-09-25x";
+const BUILD = "2026-09-26c";
 /* Open-Meteo: mit Schlüssel (kommerzielle Lizenz) laufen alle Abrufe über die customer-Server */
 const OM_KEY_LS = "fcy-om-key";
 function omKey(){ try{ return (localStorage.getItem(OM_KEY_LS) || "").trim(); }catch(e){ return ""; } }
@@ -2100,6 +2111,7 @@ function render(){
   $("actype").value = ac.type;
   profRowSync(ac);
   ensureDestLeg(); /* DEST-Zeile steht immer unten — Schluss-Leg wird automatisch ergänzt */
+  geoStaleSync();  /* Distanz/TC/VAR folgen geänderten Endpunkten (DEP/DEST/Wegpunkte/ALTN) */
 
   /* legs */
   const body = $("legBody");
@@ -2229,7 +2241,14 @@ function render(){
   /* W&B */
   renderWB(ac);
   renderPerf(ac);
-  renderFuel(ac, totMinAdj, ca.min);
+  const ISS = navIssues(calcs, ca);
+  { const nw = $("navWarn");
+    if (nw){
+      const note = GEO_NOTE && Date.now() - GEO_NOTE.t < 20000 ? `<div class="nw-info">ℹ ${esc(GEO_NOTE.txt)}</div>` : "";
+      const bad = ISS.length ? `<div class="nw-bad"><b>✘ Flugplan unvollständig — Flugzeit und Kraftstoffbedarf nicht verwendbar:</b><ul>${ISS.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>` : "";
+      nw.innerHTML = note + bad; nw.hidden = !(note || bad);
+    } }
+  renderFuel(ac, totMinAdj || totMin, ca.min, ISS);
   if (MAP) mapSync(false);
   saveState();
 }
@@ -2260,26 +2279,127 @@ function cgOk(lim, mass, arm){
   return {fwd, aft:lim.aft, ok: arm >= fwd && arm <= lim.aft};
 }
 function autoToFuel(ac){
-  const calcs = effLegs().map(computeLeg);
-  const totMinRaw = calcs.reduce((s,c)=> c.min!=null ? s+c.min : s, 0);
-  const totDist = state.legs.reduce((s,l)=> s + (num(l.dist)||0), 0);
-  const ca = computeLeg(altnEff());
-  const totMin = legMinutesAdj(calcs, tocTod(ac, totMinRaw, totDist, calcs, ca.min)).tot || totMinRaw;
-  const FC = calcFuel(ac, totMin, ca.min);
-  return FC && FC.mfr != null ? Math.round(FC.mfr*10)/10 : null;
+  const T = tripCore(ac);
+  if (T.issues.length) return null;
+  return T.FC && T.FC.mfr != null ? Math.round(T.FC.mfr*10)/10 : null;
 }
 function autoLdgFuel(ac){
   let fTo = num(state.wb && state.wb.fuelTo);
   if (fTo == null) fTo = autoToFuel(ac);
   if (fTo == null) return null;
-  const calcs = effLegs().map(computeLeg);
-  const totMinRaw = calcs.reduce((s,c)=> c.min!=null ? s+c.min : s, 0);
-  const totDist = state.legs.reduce((s,l)=> s + (num(l.dist)||0), 0);
-  const ca = computeLeg(altnEff());
-  const totMin = legMinutesAdj(calcs, tocTod(ac, totMinRaw, totDist, calcs, ca.min)).tot || totMinRaw;
-  const FC = calcFuel(ac, totMin, ca.min);
+  const T = tripCore(ac);
+  if (T.issues.length) return null;
+  const FC = T.FC;
   if (!FC || FC.climbLAll == null || FC.cruiseL == null || FC.appL == null) return null;
   return Math.max(0, fTo - (FC.climbLAll + FC.cruiseL + FC.appL));
+}
+/* Prüfzeilen: ok (✔), bad (✘), caut (⚠ prüfen), info (ℹ neutral) */
+function ckSym(c){ return c.info ? "ℹ" : c.caut ? "⚠" : c.ok ? "✔" : "✘"; }
+function ckCls(c){ return c.info ? "info" : c.caut ? "caut" : c.ok ? "ok" : "bad"; }
+function ckLi(c){ return `<li class="${ckCls(c)}">${ckSym(c)} ${c.txt}</li>`; }
+
+/* ---- Streckengeometrie aktuell halten: Signatur der Endpunkte je Abschnitt ---- */
+function segKey(p){ return p && p.c ? `${p.c.lat.toFixed(4)},${p.c.lon.toFixed(4)}` : `?${String(p && p.name || "").trim().toUpperCase()}`; }
+function geoSigs(){
+  const {wps, altn} = geoChain();
+  const legs = state.legs.map((l,i) => ({sig: segKey(wps[i]) + ">" + segKey(wps[i+1]), p0: wps[i].c, p1: wps[i+1].c}));
+  const last = wps[wps.length-1];
+  return {legs, a: {sig: segKey(last) + ">" + segKey(altn), p0: last.c, p1: altn.c}};
+}
+function geoFillSeg(o, p0, p1){
+  o.dist = String(Math.round(gcNm(p0,p1)*10)/10);
+  o.tc = String(Math.round(gcTc(p0,p1)) % 360);
+  const dv = magVarAt((p0.lat+p1.lat)/2, (p0.lon+p1.lon)/2);
+  if (dv != null) o.var = String(Math.round(-dv));
+}
+let GEO_NOTE = null;
+function geoStaleSync(){
+  if (!state || !state.legs) return;
+  const G = geoSigs(), redone = [];
+  const one = (o, g, name) => {
+    const has = String(o.dist ?? "").trim() !== "" || String(o.tc ?? "").trim() !== "";
+    if (o.geoSig == null){ if (has) o.geoSig = g.sig; o.geoStale = false; return; }   /* Altbestand: Ausgangsbasis */
+    if (o.geoSig === g.sig){ o.geoStale = false; return; }
+    if (g.p0 && g.p1){ geoFillSeg(o, g.p0, g.p1); o.geoSig = g.sig; o.geoStale = false; redone.push(name); }
+    else o.geoStale = true;                                                            /* nicht berechenbar → sperren */
+  };
+  state.legs.forEach((l,i) => one(l, G.legs[i], legLabel(i)));
+  if (state.altn) one(state.altn, G.a, "Alternate");
+  if (redone.length) GEO_NOTE = {t: Date.now(), txt: `Route geändert — Distanz, TC und VAR automatisch neu berechnet: ${redone.join(", ")}`};
+}
+function geoSigMark(key){
+  const G = geoSigs();
+  if (key === "a"){ if (state.altn) state.altn.geoSig = G.a.sig; return; }
+  const i = parseInt(String(key).replace(/^l/, ""), 10);
+  if (state.legs[i]) state.legs[i].geoSig = G.legs[i].sig;
+}
+function legLabel(i){
+  const l = state.legs[i] || {}, r = String(l.route || "").trim();
+  if (r) return r.toUpperCase();
+  const d = String((state.head || {}).dest || "").trim().toUpperCase();
+  if (i === state.legs.length - 1 && d) return d;
+  return (l.loc && l.loc !== "Pin") ? l.loc : `Leg ${i+1}`;
+}
+/* ---- Eingabeprüfung Nav Log und Vollständigkeit der Flugzeit ---- */
+function fieldBad(o, spec){
+  const bad = [];
+  for (const [k, lo, hi, lab] of spec){
+    const s = String(o[k] ?? "").trim();
+    if (s === "") continue;
+    const v = num(s);
+    if (v == null || !isFinite(v) || v < lo || v > hi) bad.push(`${lab} „${s}“ ungültig`);
+  }
+  return bad;
+}
+const LEG_SPEC = [["dist",0.1,3000,"Distanz"],["tas",30,400,"TAS"],["tc",0,360,"TC"],["wd",0,360,"WD"],["ws",0,150,"WS"],["alt",-1000,30000,"ALT"],["var",-60,60,"VAR"]];
+function navIssues(calcs, ca){
+  const out = []; let any = false;
+  const E = effLegs();
+  state.legs.forEach((l,i) => {
+    const has = ["dist","tc","route","tas","wd","ws"].some(k => String(l[k] ?? "").trim() !== "") || l.lat != null;
+    if (!has) return;
+    any = true;
+    const nm = `Leg ${i+1} (${legLabel(i)})`;
+    const bad = fieldBad(l, LEG_SPEC);
+    if (bad.length){ out.push(`${nm}: ${bad.join(", ")}`); return; }
+    if (l.geoStale){ out.push(`${nm}: Strecke geändert — Distanz/Kurs neu berechnen oder eintragen`); return; }
+    const c = calcs[i] || {};
+    if (c.min == null){
+      const e = E[i] || {};
+      const why = String(l.dist ?? "").trim() === "" ? "Distanz fehlt"
+        : String(l.tc ?? "").trim() === "" ? "TC fehlt"
+        : num(e.tas) == null ? "TAS fehlt"
+        : "keine Grundgeschwindigkeit (Wind ≥ TAS)";
+      out.push(`${nm}: ${why}`);
+    }
+  });
+  if (!any) out.push("Noch keine Strecke eingetragen");
+  const a = state.altn || {}, h = state.head || {};
+  const aUsed = String(a.route || "").trim() || a.lat != null || String(h.altn || "").trim() || String(a.dist || "").trim();
+  const aOver = String((state.fuel || {}).altnMin ?? "").trim() !== "";
+  if (aUsed){
+    const bad = fieldBad(a, LEG_SPEC);
+    if (bad.length) out.push(`Alternate: ${bad.join(", ")}`);
+    else if (!aOver && a.geoStale) out.push("Alternate: Strecke geändert — Distanz/Kurs neu berechnen");
+    else if (!aOver && (!ca || ca.min == null))
+      out.push(`Alternate: ${String(a.dist ?? "").trim() === "" ? "Distanz fehlt" : String(a.tc ?? "").trim() === "" ? "TC fehlt" : "keine Flugzeit"} (oder Alternate-Minuten in der Kraftstoffplanung eintragen)`);
+  }
+  const f = state.fuel || {};
+  out.push(...fieldBad(f, [["fob",0,2000,"Kraftstoff-Vorrat"],["appMin",0,240,"An-/Abflug-Minuten"],["altnMin",0,600,"Alternate-Minuten"]]).map(t => `Kraftstoffplanung: ${t}`));
+  return out;
+}
+/* Eine gemeinsame Rechnung für Bildschirm, Druck, Kniebrett und M&B */
+function tripCore(ac){
+  const calcs = effLegs().map(computeLeg);
+  const totDist = calcs.reduce((s,c)=> s + (c.dist||0), 0);
+  const totMinRaw = calcs.reduce((s,c)=> c.min!=null ? s+c.min : s, 0);
+  const ca = computeLeg(altnEff());
+  const TT = tocTod(ac, totMinRaw, totDist, calcs, ca.min);
+  const ADJ = legMinutesAdj(calcs, TT);
+  const totMin = ADJ.tot || totMinRaw;
+  const FC = calcFuel(ac, totMin, ca.min);
+  const issues = navIssues(calcs, ca);
+  return {calcs, totDist, totMinRaw, ca, TT, ADJ, totMin, FC, issues};
 }
 function calcWB(ac){
   ensureMasses(ac);
@@ -2290,13 +2410,32 @@ function calcWB(ac){
     if (s.max != null && m > s.max) bagWarn.push(`${s.name}: ${m} kg über Limit`);
     rows.push({name:s.name, raw:state.wb.masses[i], m, arm:s.arm, mom});
   });
+  if (ac.ballast && state.wb.ballast){
+    const b = ac.ballast, mom = b.kg * b.arm;
+    zfmM += b.kg; zfmMom += mom;
+    rows.push({name:b.label, raw:String(b.kg), m:b.kg, arm:b.arm, mom, ballast:true});
+    /* Ballast teilt sich die Höchstzuladung mit dem Gepäck im selben Raum */
+    ac.stations.forEach((s,i) => {
+      if (s.max == null || !String(s.name).startsWith(b.share)) return;
+      const g = num(state.wb.masses[i]) ?? 0;
+      if (g + b.kg > s.max) bagWarn.push(`${s.name.replace(/\s*\(.*\)$/,"")} + Ballast: ${g + b.kg} kg über Höchstzuladung ${s.max} kg`);
+    });
+  }
   const dens = num(state.wb.density), farm = num(state.wb.fuelArm);
+  const inErr = [];
+  ac.stations.forEach((s,i) => {
+    const raw = String(state.wb.masses[i] ?? "").trim(); if (raw === "") return;
+    const v = num(raw); if (v == null || v < 0 || v > 1000) inErr.push(`${s.name}: Masse „${raw}“ ungültig`);
+  });
+  inErr.push(...fieldBad(state.wb, [["fuelTo",0,2000,"Fuel TO"],["fuelLdg",0,2000,"Fuel LDG"],["density",0.65,0.9,"Dichte"],["fuelArm",1,10000,"Fuel-Arm"]]));
   const fobVal = num(state.fuel && state.fuel.fob);
   const toAutoVal = String(state.wb.fuelTo).trim() === "" ? (fobVal != null ? fobVal : autoToFuel(ac)) : null;
   const toAuto = toAutoVal != null;
   const toSrc = toAuto ? (fobVal != null ? "fob" : "min") : null;
   const fTo = toAuto ? toAutoVal : num(state.wb.fuelTo);
-  const ldgAutoVal = String(state.wb.fuelLdg).trim() === "" ? autoLdgFuel(ac) : null;
+  const ldgAutoVal = String(state.wb.fuelLdg ?? "").trim() === "" ? autoLdgFuel(ac) : null;
+  if (fTo != null && String(state.wb.fuelLdg ?? "").trim() !== "" && num(state.wb.fuelLdg) != null && num(state.wb.fuelLdg) > fTo)
+    inErr.push(`Fuel LDG ${num(state.wb.fuelLdg)} l größer als Fuel TO ${fTo} l`);
   const ldgAuto = ldgAutoVal != null;
   const fLdg = ldgAuto ? ldgAutoVal : num(state.wb.fuelLdg);
   let tom=null, tomArm=null, tomMom=null, ldm=null, ldmArm=null, ldmMom=null;
@@ -2315,6 +2454,12 @@ function calcWB(ac){
       if (ldmArm != null){ const c = cgOk(lim, ldm, ldmArm);
         checks.push({ok:c.ok, txt:`CG Landung ${Math.round(ldmArm)} mm ${c.ok?"innerhalb":"außerhalb"} ${Math.round(c.fwd)}–${Math.round(c.aft)} mm`}); }
     }
+    if (zfmM > 0){
+      /* leergeflogener Tank (FHB/AFM Kap. 6): Schwerpunkt muss auch ohne ausfliegbaren Kraftstoff im Bereich liegen */
+      const zArm = zfmMom / zfmM, c = cgOk(lim, zfmM, zArm);
+      const hint = (!c.ok && zArm < c.fwd && ac.ballast && !state.wb.ballast) ? ` — ${ac.ballast.label} zuladen?` : "";
+      checks.push({ok:c.ok, txt:`CG ohne Kraftstoff (ZFM ${zfmM.toFixed(1)} kg) ${Math.round(zArm)} mm ${c.ok?"innerhalb":"außerhalb"} ${Math.round(c.fwd)}–${Math.round(c.aft)} mm${hint}`});
+    }
     if (fTo != null && lim.maxFuel != null)
       checks.push({ok: fTo <= lim.maxFuel, txt:`Kraftstoff ${fTo} l ${fTo<=lim.maxFuel?"≤":">"} ausfliegbar ${lim.maxFuel} l`});
   }
@@ -2324,15 +2469,28 @@ function calcWB(ac){
     if (sum > 0) checks.push({ok: sum <= c.max, txt:`${c.label}: ${sum.toFixed(1)} kg`});
   }
   if (ldgAuto && fLdg != null && fTo != null)
-    checks.unshift({ok:true, txt:`Fuel LDG automatisch aus der Kraftstoffplanung: ${fLdg.toFixed(1)} l = Start ${fTo} l − Verbrauch Steig-/Reiseflug/An-&-Abflug`});
+    checks.unshift({ok:true, info:true, txt:`Fuel LDG automatisch aus der Kraftstoffplanung: ${fLdg.toFixed(1)} l = Start ${fTo} l − Verbrauch Steig-/Reiseflug/An-&-Abflug`});
+  if (!ldgAuto && String(state.wb.fuelLdg ?? "").trim() === "" && fTo != null)
+    checks.unshift({ok:false, txt:"Fuel LDG nicht ermittelbar — Flugplan unvollständig (siehe Nav Log) oder Landekraftstoff eintragen"});
   if (toAuto)
-    checks.unshift({ok:true, txt:`Fuel TO automatisch: ${fTo} l (${toSrc === "fob" ? "Vorrat aus der Kraftstoffplanung" : "Mindest-Kraftstoffbedarf"})`});
-  return {rows, zfmM, zfmMom, dens, farm, fTo, fLdg, ldgAuto, toAuto, toSrc, tom, tomArm, tomMom, ldm, ldmArm, ldmMom, lim, checks};
+    checks.unshift({ok:true, info:true, txt:`Fuel TO automatisch: ${fTo} l (${toSrc === "fob" ? "Vorrat aus der Kraftstoffplanung" : "Mindest-Kraftstoffbedarf"})`});
+  if (inErr.length){
+    /* ungültige Eingaben: keine grüne Freigabe — nur die Fehler anzeigen */
+    checks.length = 0;
+    checks.push({ok:false, txt:"Eingaben ungültig — keine Massen- und Schwerpunktfreigabe"});
+    for (const t of inErr) checks.push({ok:false, txt:t});
+  }
+  return {invalid: inErr.length > 0,rows, zfmM, zfmMom, dens, farm, fTo, fLdg, ldgAuto, toAuto, toSrc, tom, tomArm, tomMom, ldm, ldmArm, ldmMom, lim, checks};
 }
 function renderWB(ac){
   const W = calcWB(ac);
   let rows = "";
   W.rows.forEach((rr,i)=>{
+    if (rr.ballast){
+      rows += `<tr><td style="text-align:left;padding:8px 10px">${esc(rr.name)}</td><td class="calc">${fmt0(rr.m)}</td>`+
+        `<td class="calc">${fmt0(rr.arm)}</td><td class="calc">${fmt0(rr.mom)}</td></tr>`;
+      return;
+    }
     rows += `<tr><td style="text-align:left;padding:8px 10px">${rr.name}</td>`+
       `<td><input data-wb="${i}" value="${esc(rr.raw)}" inputmode="decimal"></td>`+
       `<td class="calc">${fmt0(rr.arm)}</td><td class="calc">${fmt0(rr.mom)}</td></tr>`;
@@ -2344,6 +2502,10 @@ function renderWB(ac){
   if (ac.maemOption){
     opts += `<label style="display:flex;gap:8px;align-items:center;font-size:13px">`+
       `<input type="checkbox" id="wbMaem"${state.wb.maem?" checked":""}> MÄM 40-123 durchgeführt (18-mm-Fahrwerksblätter) → MLW 1150 kg statt 1092 kg</label>`;
+  }
+  if (ac.ballast){
+    opts += `<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:6px">`+
+      `<input type="checkbox" id="wbBallast"${state.wb.ballast?" checked":""}> ${esc(ac.ballast.label)} an Bord — ${ac.ballast.kg} kg bei ${fmt0(ac.ballast.arm)} mm (FHB 6.4.1), zählt zur Gepäck-Höchstzuladung</label>`;
   }
   $("wbOpts").innerHTML = opts;
 
@@ -2364,14 +2526,17 @@ function renderWB(ac){
     ? `${(W.fTo-W.fLdg).toFixed(0)} l <small>${W.dens!=null?((W.fTo-W.fLdg)*W.dens).toFixed(1)+" kg":""}</small>` : "–";
 
   const li = (ok, txt) => `<li class="${ok?"ok":"bad"}">${ok?"✔":"✘"} ${txt}</li>`;
-  const checks = W.checks.map(c=>li(c.ok,c.txt)).join("");
+  const checks = W.checks.map(c => ckLi(Object.assign({}, c, {txt: esc(c.txt)}))).join("");
   $("wbChecks").innerHTML = checks ? `<ul class="chk">${checks}</ul>` : "";
 
-  $("wbEnv").innerHTML = W.lim ? envelopeSVG(ac, W.lim,
-    [W.tom!=null && W.tomArm!=null ? {arm:W.tomArm, mass:W.tom, lbl:"TO"} : null,
-     W.ldm!=null && W.ldmArm!=null ? {arm:W.ldmArm, mass:W.ldm, lbl:"LDG"} : null].filter(Boolean)) : "";
+  $("wbEnv").innerHTML = W.lim ? envelopeSVG(ac, W.lim, wbPoints(W)) : "";
 
   $("wbNote").textContent = ac.note;
+}
+function wbPoints(W){
+  return [W.tom!=null && W.tomArm!=null ? {arm:W.tomArm, mass:W.tom, lbl:"TO"} : null,
+          W.ldm!=null && W.ldmArm!=null ? {arm:W.ldmArm, mass:W.ldm, lbl:"LDG"} : null,
+          W.zfmM > 0 ? {arm:W.zfmMom / W.zfmM, mass:W.zfmM, lbl:"ZFM"} : null].filter(Boolean);
 }
 function envelopeSVG(ac, lim, pts){
   const fwd = lim.fwd, mtow = lim.mtow, massMin = lim.massMin;
@@ -2409,9 +2574,18 @@ function envelopeSVG(ac, lim, pts){
   }
   s += `<text x="${L}" y="12" font-size="10" fill="var(--muted)">Masse kg</text>`;
   s += `<text x="${(L+W-R)/2}" y="${H-6}" font-size="10" fill="var(--muted)" text-anchor="middle">CG mm</text>`;
+  /* Schwerpunktwanderung durch Kraftstoffverbrauch: Gerade vom Start- zum ZFM-Punkt (Landung liegt darauf) */
+  const pTO = pts.find(p => p.lbl === "TO") || pts.find(p => p.lbl === "LDG"), pZ = pts.find(p => p.lbl === "ZFM");
+  if (pTO && pZ)
+    s += `<line x1="${X(pTO.arm)}" y1="${Y(pTO.mass)}" x2="${X(pZ.arm)}" y2="${Y(pZ.mass)}" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3" opacity=".7"/>`;
   for (const p of pts){
     const inEnv = p.mass <= (p.lbl==="LDG" ? lim.mlw : lim.mtow) && cgOk(lim, p.mass, p.arm).ok;
     const col = inEnv ? "var(--accent)" : "var(--warn)";
+    if (p.lbl === "ZFM"){
+      s += `<rect x="${X(p.arm)-4}" y="${Y(p.mass)-4}" width="8" height="8" fill="var(--panel)" stroke="${col}" stroke-width="2"/>`;
+      s += `<text x="${X(p.arm)-8}" y="${Y(p.mass)+4}" font-size="10.5" font-weight="600" fill="${col}" text-anchor="end">ZFM</text>`;
+      continue;
+    }
     s += `<circle cx="${X(p.arm)}" cy="${Y(p.mass)}" r="4.5" fill="${p.lbl==="TO"?col:"var(--panel)"}" stroke="${col}" stroke-width="2"/>`;
     s += `<text x="${X(p.arm)+8}" y="${Y(p.mass)+4}" font-size="10.5" font-weight="600" fill="${col}">${p.lbl}</text>`;
   }
@@ -2427,7 +2601,10 @@ function switchAircraft(cs){
   state.pwr = ac.cruise ? ac.cruise.default : "";
   state.wb = { masses:null, fuelTo:"", fuelLdg:"", density:ac.density, fuelArm:ac.fuelArm };
   const freshPerf = initPerf(cs);
-  for (const k of ["to","ldg"]) if (state.perf && state.perf[k]) Object.assign(freshPerf[k], state.perf[k]);
+  /* nur Platz- und Wetterangaben übernehmen — Faktor und Belag sind musterabhängig */
+  const KEEP = ["elev","qnh","oat","wind","slope","rwy","rwyDir","rwySrc","metarInfo"];
+  for (const k of ["to","ldg"]) if (state.perf && state.perf[k] && freshPerf && freshPerf[k])
+    for (const f of KEEP) if (state.perf[k][f] !== undefined) freshPerf[k][f] = state.perf[k][f];
   state.perf = freshPerf;
   if (state.fuel){ state.fuel.ccIas = ""; state.fuel.stepRate = ""; }
   state.legs.forEach(autoTas); autoTas(state.altn);
@@ -2537,7 +2714,8 @@ function init(){
           state.altn.var = t.value;
         }
         if (t.dataset.k === "alt") autoTas(obj);
-        if (["route","eto","ato"].includes(t.dataset.k)) { saveState(); refreshCalcOnly(); }
+        if (["dist","tc"].includes(t.dataset.k)) geoSigMark(t.dataset.i);   /* Handeingabe gilt für die aktuelle Strecke */
+        if (["eto","ato"].includes(t.dataset.k)) { saveState(); refreshCalcOnly(); }
         else renderPreservingFocus(t);
       }
     }
@@ -2546,6 +2724,7 @@ function init(){
     }
     if (t.dataset.pb !== undefined){
       state.perf[t.dataset.pb][t.dataset.pk] = t.type === "checkbox" ? t.checked : t.value;
+      if (t.dataset.pk === "rwy") state.perf[t.dataset.pb].rwySrc = "";   /* selbst eingetragen = bestätigt */
       renderPreservingFocus(t);
     }
     if (t.dataset.fu !== undefined){
@@ -2558,6 +2737,7 @@ function init(){
   document.addEventListener("change", e=>{
     if (e.target.dataset && e.target.dataset.rwsel !== undefined){ applyRwyChoice(e.target.dataset.rwsel, e.target.value); return; }
     if (e.target.id === "wbMaem"){ state.wb.maem = e.target.checked; render(); saveState(); }
+    if (e.target.id === "wbBallast"){ state.wb.ballast = e.target.checked; render(); saveState(); }
     if (e.target.dataset && e.target.dataset.fu !== undefined && e.target.tagName === "SELECT"){
       state.fuel[e.target.dataset.fu] = e.target.value; render(); saveState();
     }
@@ -2745,8 +2925,8 @@ function apElevAuto(){
 /* Pisten: OurAirports runways.csv, gecacht je ICAO */
 const RWY_URL = "https://davidmegginson.github.io/ourairports-data/runways.csv";
 let rwyMsg = "";
-function rwyCacheGet(ic){ try{ const c = JSON.parse(localStorage.getItem("fcRwy1")||"{}"); return c[ic]||null; }catch(e){ return null; } }
-function rwyCacheSet(map){ try{ const c = JSON.parse(localStorage.getItem("fcRwy1")||"{}"); Object.assign(c, map); localStorage.setItem("fcRwy1", JSON.stringify(c)); }catch(e){} }
+function rwyCacheGet(ic){ try{ const c = JSON.parse(localStorage.getItem("fcRwy2")||"{}"); return c[ic]||null; }catch(e){ return null; } }
+function rwyCacheSet(map){ try{ const c = JSON.parse(localStorage.getItem("fcRwy2")||"{}"); Object.assign(c, map); localStorage.setItem("fcRwy2", JSON.stringify(c)); }catch(e){} }
 function parseRwyCsv(txt, wanted){
   const out = {}; wanted.forEach(ic=> out[ic]=[]);
   const split = line => { const f=[]; let cur="", q=false; for (const ch of line){ if (ch === '"') q=!q; else if (ch === ',' && !q){ f.push(cur); cur=""; } else cur += ch; } f.push(cur); return f; };
@@ -2757,13 +2937,16 @@ function parseRwyCsv(txt, wanted){
     if (!hit) continue;
     const f = split(L);
     if (f[2] !== hit || f[7] === "1") continue; /* falscher Platz oder Bahn geschlossen */
-    const len = Math.round((parseFloat(f[3])||0)*0.3048) || null;
+    const lenFt = parseFloat(f[3]) || 0;
+    const len = Math.round(lenFt*0.3048) || null;
     const surf = String(f[5]||"").toUpperCase();
-    for (const ident of [f[8], f[14]]){
+    for (const [ident, disp] of [[f[8], f[13]], [f[14], f[19]]]){
       const idn = String(ident||"").trim();
       const n = parseInt(idn, 10);
       if (!idn || !isFinite(n) || n < 1 || n > 36) continue;
-      out[hit].push({id: idn, dir: n*10, len, surf});
+      const dFt = parseFloat(disp) || 0;
+      const lda = len != null ? Math.round(Math.max(0, lenFt - dFt)*0.3048) : null;   /* Landung: abzüglich versetzter Schwelle */
+      out[hit].push({id: idn, dir: n*10, len, lda, surf});
     }
   }
   return out;
@@ -2789,7 +2972,7 @@ function applyRwyChoice(key, val){
   if (!val) return;
   const [d, l, sf] = String(val).split("|");
   state.perf[key].rwyDir = d;
-  if (l) state.perf[key].rwy = l;
+  if (l){ state.perf[key].rwy = l; state.perf[key].rwySrc = "oa"; }
   const S = String(sf||"").toUpperCase();
   const paved = /^(ASP|CON|PEM|BIT|TAR|PAVED|MAC|APH)/.test(S);
   const unpaved = /^(GRS|GRASS|TURF|SOD|GRAS|EART|DIRT|GRV|GRAVEL|SAND|CLAY)/.test(S);
@@ -2803,7 +2986,7 @@ function applyRwyChoice(key, val){
 function initPerf(cs){
   const P = AIRCRAFT[cs || "D-EGZZ"].perf;
   const mk = B => B ? { elev:"", qnh:"1013", oat:"", wind:"0", surf:B.basis, slope:"0",
-                        factor:String(B.factor), rwy:"", rwyDir:"", metarInfo:"" } : null;
+                        factor:String(B.factor), rwy:"", rwyDir:"", rwySrc:"", metarInfo:"" } : null;
   return P ? { to:mk(P.to), ldg:mk(P.ldg) } : null;
 }
 
@@ -2848,6 +3031,29 @@ function wbMasses(ac){
   const W = calcWB(ac);
   return { tom: W.zfmM > 0 ? W.tom : null, ldm: W.zfmM > 0 ? W.ldm : null };
 }
+/* Pistenbewertung — identisch für Bildschirm, A4 und Kniebrett */
+function perfRwyCk(key, s, r){
+  const bahn = key === "to" ? "Startbahn (TORA)" : "Landestrecke (LDA)";
+  if (!(isFinite(r.d50F) && r.d50F > 0)) return {ok:false, txt:"Streckenergebnis ungültig — Eingaben prüfen"};
+  const rwy = parseFloat(s.rwy);
+  if (!(isFinite(rwy) && rwy > 0)) return {ok:false, caut:true, txt:`${bahn} nicht eingetragen — keine Pistenbewertung`};
+  const fits = r.d50F <= rwy;
+  if (fits && s.rwySrc === "oa")
+    return {ok:true, caut:true, txt:`Strecke über 50 ft × F = ${fmt0(r.d50F)} m ≤ ${bahn} ${fmt0(rwy)} m — Länge aus OurAirports${key==="ldg"?" (abzüglich versetzter Schwelle)":""}, gegen AIP prüfen und Wert zur Bestätigung selbst eintragen`};
+  return {ok:fits, txt:`Strecke über 50 ft × F = ${fmt0(r.d50F)} m ${fits?"≤":">"} ${bahn} ${fmt0(rwy)} m`};
+}
+/* Faktor F: leer = Vorgabe des Musters (nie stillschweigend 1,0) */
+function perfFactor(B, s){
+  const t = String(s.factor ?? "").trim();
+  const v = t === "" ? NaN : parseFloat(t.replace(",", "."));
+  return isFinite(v) ? v : B.factor;
+}
+function perfIssues(B, s){
+  const out = fieldBad(s, [["factor",1,3,"Faktor F"],["rwy",50,6000,"Bahnlänge"],["elev",-1500,16000,"Platzhöhe"],
+                           ["qnh",850,1090,"QNH"],["oat",-60,60,"OAT"],["wind",-60,60,"Wind"],["slope",-10,10,"Neigung"],["rwyDir",1,360,"Bahnrichtung"]]);
+  if (![B.basis, B.alt].filter(Boolean).includes(s.surf)) out.push("Belag nicht gewählt");
+  return out;
+}
 function perfComputeNomo(B,s,ac){
   const elev=parseFloat(s.elev), qnhIn=parseFloat(s.qnh), oat=parseFloat(s.oat);
   if(!isFinite(elev)||!isFinite(oat)) return {ready:false};
@@ -2879,7 +3085,7 @@ function perfComputeNomo(B,s,ac){
   if(B.wbKey==="ldm"&&sl<0){ const k=1-0.05*sl; roll*=k; d50*=k;
     notes.push("Gefälle: +5 % je 1 % laut FHB"); }
   if(B.wbKey==="ldm"&&sl>0) notes.push("Steigung bei der Landung nicht angerechnet (konservativ)");
-  const F=parseFloat(String(s.factor).replace(",","."))||1;
+  const F=perfFactor(B,s);
   return {ready:true,pa,rollTab,d50Tab,roll,d50,rollF:roll*F,d50F:d50*F,F,notes,infos};
 }
 
@@ -2931,7 +3137,7 @@ function perfCompute(B, s){
   if (B.slopePct != null && sl){ roll += B.slopePct * sl * rollTab; d50 += B.slopePct * sl * rollTab; }
   else if (B.slopePct == null && sl) notes.push("Neigungskorrektur im POH nicht vorgesehen — nicht angewendet");
   roll = Math.max(0, roll); d50 = Math.max(0, d50);
-  const F = parseFloat(String(s.factor).replace(",", ".")) || 1;
+  const F = perfFactor(B, s);
   return { ready:true, pa, rollTab, d50Tab, roll, d50, rollF:roll*F, d50F:d50*F, F, notes };
 }
 
@@ -2945,7 +3151,7 @@ function renderPerf(ac){
   }
   noteEl.style.display = "none";
   if (!state.perf) state.perf = initPerf(state.callsign);
-  const rwyBar = `<div class="arow" style="margin:0 0 10px"><button type="button" id="btnRwy">Pisten &amp; Platzhöhen laden (DEP/DEST)</button><button type="button" class="qm" data-help="Pisten: OurAirports-Datenbank, je Platz lokal gecacht; Richtung aus der Bahnkennung (missweisend, passend zum METAR-Wind), Länge = Gesamtlänge gerundet — versetzte Schwellen beachten. Platzhöhe: Geländemodell (Open-Meteo) am ARP. AIP/Karte maßgeblich.">?</button><span class="hint" style="margin-left:10px">${esc(rwyMsg)}</span></div>`;
+  const rwyBar = `<div class="arow" style="margin:0 0 10px"><button type="button" id="btnRwy">Pisten &amp; Platzhöhen laden (DEP/DEST)</button><button type="button" class="qm" data-help="Pisten: OurAirports-Datenbank, je Platz lokal gecacht; Richtung aus der Bahnkennung (missweisend, passend zum METAR-Wind). Start: Gesamtlänge als TORA-Näherung; Landung: Gesamtlänge abzüglich versetzter Schwelle als LDA-Näherung. Solche Werte gelten nur als Hinweis (⚠) — erst ein selbst eingetragener AIP-Wert ergibt eine Freigabe. Platzhöhe: Geländemodell (Open-Meteo) am ARP. AIP/Karte maßgeblich.">?</button><span class="hint" style="margin-left:10px">${esc(rwyMsg)}</span></div>`;
   const li = (ok, txt) => `<li class="${ok?"ok":"bad"}">${ok?"✔":"✘"} ${txt}</li>`;
   const blk = (key, title) => {
     const B = ac.perf[key], s = state.perf[key];
@@ -2954,9 +3160,13 @@ function renderPerf(ac){
     const num = (pk, lab, ph, dis, title2) =>
       `<div class="field"><label${title2?` title="${title2}"`:""}>${lab}</label>` +
       `<input inputmode="decimal" data-pb="${key}" data-pk="${pk}" value="${s[pk]??""}" placeholder="${ph||""}"${dis?" disabled":""}></div>`;
+    const surfOk = [B.basis, B.alt].filter(Boolean).includes(s.surf);
     const opt = v => `<option${s.surf===v?" selected":""}>${v}</option>`;
+    const PI = perfIssues(B, s);
     let res = "";
-    if (!r.ready){
+    if (PI.length){
+      res = `<ul class="chk">${li(false, "Eingaben ungültig — keine Streckenbewertung")}${PI.map(t => li(false, esc(t))).join("")}</ul>`;
+    } else if (!r.ready){
       res = `<div class="wb-note" style="margin-top:10px">Platzhöhe und OAT eingeben.</div>`;
     } else if (r.err){
       res = `<div class="kpis" style="margin-top:10px"><div class="kpi"><div class="k">Druckhöhe</div><div class="v">${fmt0(r.pa)} ft</div></div></div>` +
@@ -2964,8 +3174,7 @@ function renderPerf(ac){
     } else {
       let checks = (r.infos||[]).map(n => li(true, n)).join("") + (r.notes||[]).map(n => li(false, n)).join("");
       const rwy = parseFloat(s.rwy);
-      if (isFinite(rwy) && rwy > 0)
-        checks += li(r.d50F <= rwy, `Strecke über 50 ft × F = ${fmt0(r.d50F)} m ${r.d50F<=rwy?"≤":">"} verfügbare Bahn ${fmt0(rwy)} m`);
+      checks += ckLi(perfRwyCk(key, s, r));
       res = `<div class="kpis" style="margin-top:10px">
         <div class="kpi"><div class="k">Druckhöhe</div><div class="v">${fmt0(r.pa)} ft</div></div>
         <div class="kpi"><div class="k">Tabelle Roll / 50 ft</div><div class="v">${fmt0(r.rollTab)} / ${fmt0(r.d50Tab)} m</div></div>
@@ -2980,16 +3189,17 @@ function renderPerf(ac){
         ${num("qnh","QNH hPa","1013")}
         ${num("oat","OAT °C","15")}
         ${num("wind","Wind kt (+GW/−RW)","0","", "Steuerkurskomponente: positiv = Gegenwind, negativ = Rückenwind")}
-        <div class="field"><label>Belag</label><select data-pb="${key}" data-pk="surf">${opt(B.basis)}${opt(B.alt)}</select></div>
+        <div class="field"><label>Belag</label><select data-pb="${key}" data-pk="surf">${surfOk ? "" : `<option value="" selected disabled>— bitte wählen —</option>`}${opt(B.basis)}${B.alt ? opt(B.alt) : ""}</select></div>
         ${num("slope","Neigung % (+bergauf)","0", B.slopePct==null, B.slopePct==null?"im POH nicht vorgesehen":"")}
         ${num("factor","Faktor F", String(B.factor).replace(".",","), "", "Multiplikator auf die fertig korrigierten Strecken — Vorbelegung aus dem AFM (Tecnam) bzw. Betreiberzuschlag, zum Überschreiben eintragen")}
-        ${num("rwy","Bahn verfügbar m","optional")}
+        ${num("rwy", key === "to" ? "TORA m" : "LDA m", "laut AIP", "", key === "to" ? "Verfügbare Startlaufstrecke laut AIP/Flugplatzkarte" : "Verfügbare Landestrecke laut AIP/Flugplatzkarte (versetzte Schwellen beachten)")}
         ${num("rwyDir","Bahnrichtung °","z. B. 260","", "Für die Windkomponente aus dem METAR (METAR-Wind ist rechtweisend; die Abweichung zur missweisenden Bahnrichtung ist vernachlässigbar)")}
         ${(() => {
           const ic = perfIcao(key), rc = ic ? rwyCacheGet(ic) : null;
           if (!rc || !rc.rws || !rc.rws.length) return "";
-          const opts = rc.rws.map(rw=>`<option value="${rw.dir}|${rw.len ?? ""}|${rw.surf ?? ""}"${String(s.rwyDir)===String(rw.dir)?" selected":""}>${esc(rw.id)} — ${rw.dir}°${rw.len?` · ${rw.len} m`:""}${rw.surf?` · ${esc(rw.surf)}`:""}</option>`).join("");
-          return `<div class="field"><label>Piste ${esc(ic)}</label><select data-rwsel="${key}" title="Setzt Bahnrichtung, verfügbare Bahn und Belag — Länge = Gesamtlänge lt. OurAirports, verkürzte Startstrecken (Displaced Threshold) beachten"><option value="">— wählen —</option>${opts}</select></div>`;
+          const opts = rc.rws.map(rw=>{ const L = key === "ldg" ? (rw.lda ?? rw.len) : rw.len;
+            return `<option value="${rw.dir}|${L ?? ""}|${rw.surf ?? ""}"${String(s.rwyDir)===String(rw.dir)?" selected":""}>${esc(rw.id)} — ${rw.dir}°${L?` · ${L} m${key==="ldg"&&rw.lda!=null&&rw.lda!==rw.len?" LDA":""}`:""}${rw.surf?` · ${esc(rw.surf)}`:""}</option>`; }).join("");
+          return `<div class="field"><label>Piste ${esc(ic)}</label><select data-rwsel="${key}" title="Setzt Bahnrichtung, Bahnlänge und Belag aus OurAirports (Landung: abzüglich versetzter Schwelle) — Werte gegen AIP prüfen"><option value="">— wählen —</option>${opts}</select></div>`;
         })()}
       </div>
       ${(() => {
@@ -3137,7 +3347,8 @@ function calcFuel(ac, tripMin, altnAutoMin){
   const safeMin = (fob != null && cr && frfL != null) ? Math.max(0, (fob - TAXI - frfL)/cr*60) : null;
   return {prof, S, trAlt, depElev, f, cr, cl, cruiseAlt, seq, qOff, steps, stepsMin, stepsL, stepRate, stepHint, auto, climbAuto, climbRateAuto, climbSrc, climbMin, climbL, climbLAll, climbRate, climbHint, appMin, altnOverride, altnMin, frfMin, cruiseMin, TAXI, cruiseL, appL, altnL, frfL, mfr, fob, extra, safeMin};
 }
-function renderFuel(ac, tripMin, altnAutoMin){
+function renderFuel(ac, tripMin, altnAutoMin, issues){
+  issues = issues || [];
   const box = $("fuelBox");
   if (!box) return;
   const FC = calcFuel(ac, tripMin, altnAutoMin);
@@ -3154,9 +3365,11 @@ function renderFuel(ac, tripMin, altnAutoMin){
     `<td class="calc">${f1(lit)} l</td></tr>`;
   const li = (ok, txt) => `<li class="${ok?"ok":"bad"}">${ok?"✔":"✘"} ${txt}</li>`;
   let checks = "";
+  const INC = issues.length > 0;
+  if (INC) checks += li(false, `Kraftstoffbedarf nicht ermittelbar — ${esc(issues.join(" · "))}`);
   if (fob != null && ac.maxFuelL != null)
     checks += li(fob <= ac.maxFuelL, `Kraftstoff-Vorrat ${f1(fob)} l ${fob<=ac.maxFuelL?"≤":">"} ausfliegbare Tankmenge ${f1(ac.maxFuelL)} l`);
-  if (extra != null)
+  if (extra != null && !INC)
     checks += li(extra >= 0, extra >= 0
       ? `Vorrat ≥ Mindest-Kraftstoffbedarf — Extra-Kraftstoff ${f1(extra)} l`
       : `Vorrat liegt ${f1(-extra)} l UNTER dem Mindest-Kraftstoffbedarf — Flug so nicht antreten (OM-A 3.2.4)`);
@@ -3180,9 +3393,9 @@ function renderFuel(ac, tripMin, altnAutoMin){
       ${row("An- &amp; Abflug", appMin, cr, appL)}
       ${row("Alternate", altnMin, cr, altnL, altnOverride?"":"aus Alternate-Leg")}
       ${row("Final Reserve ("+(f.res==="night"?"VFR Nacht/IFR":"VFR Tag")+")", frfMin, cr, frfL)}
-      <tr><td><b>Mindest-Kraftstoffbedarf</b></td><td></td><td></td><td class="calc"><b>${f1(mfr)} l</b></td></tr>
+      <tr><td><b>Mindest-Kraftstoffbedarf</b></td><td></td><td></td><td class="calc${INC?" incl":""}"><b>${INC ? "unvollständig" : f1(mfr) + " l"}</b></td></tr>
       <tr><td>Kraftstoff-Vorrat (Fuel On Board)</td><td></td><td></td><td class="calc">${f1(fob)} l</td></tr>
-      <tr><td>Extra-Kraftstoff</td><td></td><td></td><td class="calc">${f1(extra)} l</td></tr>
+      <tr><td>Extra-Kraftstoff</td><td></td><td></td><td class="calc${INC?" incl":""}">${INC ? "–" : f1(extra) + " l"}</td></tr>
       <tr><td>Sichere Flugzeit <small style="color:var(--mut)">(Vorrat − Rollen − Final Reserve) ÷ Reiseverbrauch</small></td><td></td><td></td><td class="calc"><b>${safeTxt}</b></td></tr>
       ${(() => { const tas = safeMin != null ? cruiseTas(ac, cruiseAlt ?? 0) : null;
         return tas != null ? `<tr><td>Reichweite <small style="color:var(--mut)">Nullwind, ${state.pwr} ${ac.cruise.unit}${cruiseAlt!=null?" in "+fmt0(cruiseAlt)+" ft":""}</small></td><td></td><td></td><td class="calc">${fmt0(safeMin/60*tas)} NM</td></tr>` : ""; })()}
@@ -3201,14 +3414,8 @@ let printMode = "full";
 function buildKneeSheet(){
   const ac = AIRCRAFT[state.callsign], h = state.head||{};
   const f1 = v => v == null ? "–" : (Math.round(v*10)/10).toLocaleString("de-DE",{minimumFractionDigits:1,maximumFractionDigits:1});
-  const calcs = effLegs().map(computeLeg);
-  const totDist = calcs.reduce((s,c)=> s + (c.dist||0), 0);
-  const totMinRaw = calcs.reduce((s,c)=> c.min!=null ? s+c.min : s, 0);
-  const ca = computeLeg(altnEff());
-  const TT = tocTod(ac, totMinRaw, totDist, calcs, ca.min);
-  const ADJ = legMinutesAdj(calcs, TT);
-  const totMin = ADJ.tot || totMinRaw;
-  const FC = calcFuel(ac, totMin, ca.min);
+  const CORE = tripCore(ac);
+  const {calcs, totDist, totMinRaw, ca, TT, ADJ, totMin, FC} = CORE;
   const etdM = (m => m ? parseInt(m[1],10)*60 + parseInt(m[2],10) : null)(String(h.etd||"").match(/^(\d{1,2}):(\d{2})$/));
   const hm = m => `${String(Math.floor(((m%1440)+1440)%1440/60)).padStart(2,"0")}:${String(Math.round(m)%60).padStart(2,"0")}`;
   const A = state.legs.map(l => num(l.alt));
@@ -3280,7 +3487,11 @@ function buildKneeSheet(){
   left += `<div class="ps-kln" style="color:#666">MC = Kurs ohne Wind · MH = Steuerkurs mit Planwind — Wind anders: von MC aus neu vorhalten.</div>`;
   /* Rechte Haelfte: Zusatzinfos */
   right += `<div class="ps-ksub">Kraftstoff (OM-A 3.2.4)</div>`;
-  if (FC){
+  if (FC && CORE.issues.length){
+    right += `<div class="ps-kck"><b>✘ Flugplan unvollständig — Kraftstoffbedarf nicht ermittelt</b></div>`;
+    CORE.issues.slice(0, 4).forEach(t => right += `<div class="ps-kck">✘ ${esc(t)}</div>`);
+    if (CORE.issues.length > 4) right += `<div class="ps-kck">… ${CORE.issues.length - 4} weitere (siehe App)</div>`;
+  } else if (FC){
     const safeTxt = FC.safeMin != null ? `${Math.floor(FC.safeMin/60)}:${String(Math.round(FC.safeMin%60)).padStart(2,"0")} h` : "______";
     right += `<table class="ps-ki"><colgroup><col style="width:52%"><col style="width:48%"></colgroup>
       <tr><td>Mindestbedarf</td><td><b>${f1(FC.mfr)} l</b></td></tr>
@@ -3293,8 +3504,13 @@ function buildKneeSheet(){
   right += `<div class="ps-ksub">Mass &amp; Balance</div>`;
   right += `<table class="ps-ki"><colgroup><col style="width:52%"><col style="width:48%"></colgroup>
     <tr><td>Startmasse (TOM)</td><td><b>${W.tom!=null?f1(W.tom)+" kg":"–"}</b>${W.toAuto?` <span class="kn-pl">(Fuel = ${W.toSrc === "fob" ? "Vorrat" : "Mindestbedarf"})</span>`:""}</td></tr>
-    <tr><td>Landemasse (LDM)</td><td>${W.ldm!=null?f1(W.ldm)+" kg":"–"}</td></tr></table>`;
-  const cks = (W.checks||[]).slice(0,4).map(c=>`<div class="ps-kck">${c.ok?"✔":"✘"} ${esc(c.txt)}</div>`).join("");
+    <tr><td>Landemasse (LDM)</td><td>${W.ldm!=null?f1(W.ldm)+" kg":"–"}</td></tr>
+    <tr><td>ohne Kraftstoff (ZFM)</td><td>${W.zfmM>0?`${f1(W.zfmM)} kg · CG ${fmt0(W.zfmMom/W.zfmM)}`:"–"}</td></tr>
+    ${ac.ballast && state.wb.ballast ? `<tr><td>Ballast</td><td><b>${ac.ballast.kg} kg Sandsäcke im Gepäckraum</b></td></tr>` : ""}</table>`;
+  /* alle fehlgeschlagenen Prüfungen immer, danach bestandene bis insgesamt 4 Zeilen */
+  const ckAll = W.checks || [], ckBad = ckAll.filter(c => !c.ok && !c.info), ckRest = ckAll.filter(c => c.ok && !c.info);
+  const cks = ckBad.concat(ckRest.slice(0, Math.max(0, 4 - ckBad.length)))
+    .map(c=>`<div class="ps-kck">${ckSym(c)} ${esc(c.txt)}</div>`).join("");
   if (cks) right += cks;
   right += `<div class="ps-ksub">Start- / Landestrecken</div>`;
   for (const [key, lbl] of [["to","Start"],["ldg","Ldg"]]){
@@ -3302,10 +3518,13 @@ function buildKneeSheet(){
     if (!B){ right += `<div class="ps-kck">${lbl}: keine Daten</div>`; continue; }
     const s = perfEff(key), r = B.nomo ? perfComputeNomo(B, s, ac) : perfCompute(B, s);
     const ic = perfIcao(key) || lbl;
+    const PI = perfIssues(B, s);
+    if (PI.length){ right += `<div class="ps-kck">✘ ${lbl} ${esc(ic)}: Eingaben ungültig — ${esc(PI.join(", "))}</div>`; continue; }
     if (!r.ready){ right += `<div class="ps-kck">✘ ${lbl} ${esc(ic)}: Platzhöhe/OAT fehlen</div>`; continue; }
     if (r.err){ right += `<div class="ps-kck">✘ ${lbl} ${esc(ic)}: ${esc(r.err)}</div>`; continue; }
+    const RC = perfRwyCk(key, s, r);
     const rwy = parseFloat(s.rwy);
-    const bahn = isFinite(rwy) && rwy > 0 ? ` ${r.d50F<=rwy?"≤":"&gt;"} Bahn ${fmt0(rwy)} m ${r.d50F<=rwy?"✔":"✘"}` : "";
+    const bahn = isFinite(rwy) && rwy > 0 ? ` ${r.d50F<=rwy?"≤":"&gt;"} ${key==="to"?"TORA":"LDA"} ${fmt0(rwy)} m ${ckSym(RC)}${RC.caut?" AIP prüfen":""}` : ` ${ckSym(RC)} Bahn fehlt`;
     right += `<div class="ps-kck">${lbl} ${esc(ic)}: über 50 ft <b>${fmt0(r.d50F)} m</b>${bahn}${s.rwyDir?` · Piste ${esc(String(s.rwyDir))}°`:""}</div>`;
   }
   right += `<div class="ps-kbx"><span>ATIS ______</span><span>QNH ________</span><span>Squawk ________</span></div>`;
@@ -3390,7 +3609,9 @@ function buildPrintSheet(){
   /* Totals + Notizen/Kraftstoff, dann Alternate, dann inkl. Alternate (wie Excel Z. 51-56) */
   const FC = calcFuel(ac, totMin, ca.min);
   const safeTxt = FC && FC.safeMin != null ? `${Math.floor(FC.safeMin/60)}:${String(Math.round(FC.safeMin%60)).padStart(2,"0")} h` : "–";
-  const fuelTxt = FC ? `Kraftstoff (OM-A 3.2.4): Mindestbedarf <b>${f1(FC.mfr)} l</b> — Rollen ${f1(FC.TAXI)} · Steigflug ${f1(FC.climbLAll)} · Reise ${f1(FC.cruiseL)} · An-/Abflug ${f1(FC.appL)} · Alternate ${f1(FC.altnL)} · Final Reserve ${f1(FC.frfL)} (${FC.frfMin} min) — Vorrat ${f1(FC.fob)} l · Extra ${f1(FC.extra)} l · Sichere Flugzeit ${safeTxt} (${state.pwr} ${ac.cruise?ac.cruise.unit:""})` : "";
+  const ISSp = navIssues(calcs, ca);
+  const fuelTxt = (FC && ISSp.length) ? `<b>✘ Kraftstoff (OM-A 3.2.4): Flugplan UNVOLLSTÄNDIG — Mindestbedarf nicht ermittelt:</b> ${esc(ISSp.join(" · "))}`
+    : FC ? `Kraftstoff (OM-A 3.2.4): Mindestbedarf <b>${f1(FC.mfr)} l</b> — Rollen ${f1(FC.TAXI)} · Steigflug ${f1(FC.climbLAll)} · Reise ${f1(FC.cruiseL)} · An-/Abflug ${f1(FC.appL)} · Alternate ${f1(FC.altnL)} · Final Reserve ${f1(FC.frfL)} (${FC.frfMin} min) — Vorrat ${f1(FC.fob)} l · Extra ${f1(FC.extra)} l · Sichere Flugzeit ${safeTxt} (${state.pwr} ${ac.cruise?ac.cruise.unit:""})` : "";
   const ttTxt = tocTodText(TTp, h);
   out += `<tr><td class="ps-notes" colspan="11" rowspan="2">${fuelTxt}${ttTxt ? `<br>Profil: ${esc(ttTxt)}` : ""}</td>
       <td class="ps-lbl" colspan="2" style="text-align:center">Total Distance</td><td rowspan="2" class="nb"></td><td class="ps-lbl" colspan="2" style="text-align:center">Total Time</td><td colspan="3" rowspan="2" class="ps-notes"></td></tr>
@@ -3519,10 +3740,9 @@ async function pdfFlow(mode){
 function buildPrintPage2(){
   const ac = AIRCRAFT[state.callsign], h = state.head||{};
   const f1 = v => v == null ? "–" : (Math.round(v*10)/10).toLocaleString("de-DE",{minimumFractionDigits:1,maximumFractionDigits:1});
-  const ck = c => `<div class="ps-ck">${c.ok?"✔":"✘"} ${esc(c.txt)}</div>`;
-  const calcs = effLegs().map(computeLeg);
-  const totMin = calcs.reduce((s,c)=> c.min!=null ? s+c.min : s, 0);
-  const ca = computeLeg(altnEff());
+  const ck = c => `<div class="ps-ck">${ckSym(c)} ${esc(c.txt)}</div>`;
+  const CORE = tripCore(ac);
+  const {calcs, totMin, ca} = CORE;
   let out = `<div class="ps-p2">`;
   out += `<table><colgroup><col style="width:34%"><col style="width:8%"><col style="width:16%"><col style="width:7%"><col style="width:10%"><col style="width:11%"><col style="width:14%"></colgroup>
     <tr><td class="ps-title nb" style="font-size:11pt">M&amp;B · Kraftstoff · Start-/Landestrecken</td>
@@ -3546,9 +3766,7 @@ function buildPrintPage2(){
   wb += `</table>`;
   wb += W.checks.map(ck).join("");
   if (W.lim){
-    let env = envelopeSVG(ac, W.lim,
-      [W.tom!=null && W.tomArm!=null ? {arm:W.tomArm, mass:W.tom, lbl:"TO"} : null,
-       W.ldm!=null && W.ldmArm!=null ? {arm:W.ldmArm, mass:W.ldm, lbl:"LDG"} : null].filter(Boolean));
+    let env = envelopeSVG(ac, W.lim, wbPoints(W));
     env = env.replace(/var\(--calc-bg\)/g,"#efefef").replace(/var\(--calc-ink\)/g,"#000")
              .replace(/var\(--muted\)/g,"#444").replace(/var\(--line\)/g,"#999")
              .replace(/var\(--accent\)/g,"#000").replace(/var\(--warn\)/g,"#000")
@@ -3571,14 +3789,16 @@ function buildPrintPage2(){
     fu += row("An- &amp; Abflug", FC.appMin, FC.cr, FC.appL);
     fu += row("Alternate", FC.altnMin, FC.cr, FC.altnL);
     fu += row(`Final Reserve (${FC.f.res==="night"?"VFR Nacht/IFR":"VFR Tag"})`, FC.frfMin, FC.cr, FC.frfL);
-    fu += `<tr><td class="ps-lbl">Mindest-Kraftstoffbedarf</td><td></td><td></td><td class="tv">${f1(FC.mfr)} l</td></tr>`;
+    const INC = CORE.issues.length > 0;
+    fu += `<tr><td class="ps-lbl">Mindest-Kraftstoffbedarf</td><td></td><td></td><td class="tv">${INC ? "UNVOLLST." : f1(FC.mfr) + " l"}</td></tr>`;
     fu += `<tr><td style="text-align:left">Kraftstoff-Vorrat (FOB)</td><td></td><td></td><td>${f1(FC.fob)} l</td></tr>`;
-    fu += `<tr><td style="text-align:left">Extra-Kraftstoff</td><td></td><td></td><td class="tv">${f1(FC.extra)} l</td></tr>`;
+    fu += `<tr><td style="text-align:left">Extra-Kraftstoff</td><td></td><td></td><td class="tv">${INC ? "–" : f1(FC.extra) + " l"}</td></tr>`;
     const safeTxt = FC.safeMin != null ? `${Math.floor(FC.safeMin/60)}:${String(Math.round(FC.safeMin%60)).padStart(2,"0")} h` : "–";
     fu += `<tr><td style="text-align:left">Sichere Flugzeit</td><td></td><td></td><td>${safeTxt}</td></tr></table>`;
     if (FC.fob != null && ac.maxFuelL != null)
       fu += ck({ok: FC.fob <= ac.maxFuelL, txt:`Vorrat ${f1(FC.fob)} l ${FC.fob<=ac.maxFuelL?"≤":">"} ausfliegbare Tankmenge ${f1(ac.maxFuelL)} l`});
-    if (FC.extra != null)
+    if (INC) CORE.issues.forEach(t => fu += ck({ok:false, txt:`Flugplan unvollständig: ${t}`}));
+    else if (FC.extra != null)
       fu += ck({ok: FC.extra >= 0, txt: FC.extra >= 0 ? `Vorrat ≥ Mindestbedarf` : `Vorrat ${f1(-FC.extra)} l UNTER Mindestbedarf — Flug so nicht antreten`});
     fu += `<div class="ps-ck" style="color:#444">Leistung ${esc(String(state.pwr))} ${ac.cruise?esc(ac.cruise.unit):""} · Verbrauchsquellen siehe App</div>`;
   }
@@ -3589,8 +3809,12 @@ function buildPrintPage2(){
       return `<div class="ps-pf"><b>${title}</b><div class="ps-ck">keine Leistungsdaten für dieses Muster hinterlegt</div></div>`;
     const B = ac.perf[key], s = perfEff(key);
     const r = B.nomo ? perfComputeNomo(B, s, ac) : perfCompute(B, s);
-    let inner = `<div class="ps-ckl">Platzhöhe ${esc(s.elev||"–")}${s.elevAuto?" (auto)":""} ft · QNH ${esc(s.qnh||"1013")} hPa · OAT ${esc(s.oat||"–")} °C · Wind ${esc(s.wind||"0")} kt · ${esc(s.surf||B.basis)} · Neigung ${esc(s.slope||"0")} % · Faktor ${esc(s.factor||"1")}${s.rwy?` · Bahn ${esc(s.rwy)} m`:""}</div>`;
-    if (!r.ready){
+    const PI = perfIssues(B, s);
+    let inner = `<div class="ps-ckl">Platzhöhe ${esc(s.elev||"–")}${s.elevAuto?" (auto)":""} ft · QNH ${esc(s.qnh||"1013")} hPa · OAT ${esc(s.oat||"–")} °C · Wind ${esc(s.wind||"0")} kt · ${esc(s.surf||"–")} · Neigung ${esc(s.slope||"0")} % · Faktor ${esc(String(perfFactor(B, s)))}${s.rwy?` · ${key==="to"?"TORA":"LDA"} ${esc(s.rwy)} m${s.rwySrc==="oa"?" (OurAirports, ungeprüft)":""}`:""}</div>`;
+    if (PI.length){
+      inner += ck({ok:false, txt:"Eingaben ungültig — keine Streckenbewertung"});
+      PI.forEach(t => inner += ck({ok:false, txt:t}));
+    } else if (!r.ready){
       inner += `<div class="ps-ck">✘ Platzhöhe/OAT nicht eingegeben — keine Berechnung</div>`;
     } else if (r.err){
       inner += `<div class="ps-ck">✘ ${esc(r.err)} (Druckhöhe ${fmt0(r.pa)} ft)</div>`;
@@ -3600,9 +3824,7 @@ function buildPrintPage2(){
         <tr><td>${fmt0(r.pa)} ft</td><td>${fmt0(r.rollTab)} / ${fmt0(r.d50Tab)} m</td><td>${fmt0(r.roll)} / ${fmt0(r.d50)} m</td><td class="tv">${fmt0(r.rollF)} / ${fmt0(r.d50F)} m</td></tr></table>`;
       (r.infos||[]).forEach(n => inner += ck({ok:true, txt:n}));
       (r.notes||[]).forEach(n => inner += ck({ok:false, txt:n}));
-      const rwy = parseFloat(s.rwy);
-      if (isFinite(rwy) && rwy > 0)
-        inner += ck({ok: r.d50F <= rwy, txt:`Strecke über 50 ft × F = ${fmt0(r.d50F)} m ${r.d50F<=rwy?"≤":">"} verfügbare Bahn ${fmt0(rwy)} m`});
+      inner += ck(perfRwyCk(key, s, r));
     }
     return `<div class="ps-pf" style="border:.5pt solid #555;padding:1.4mm;text-align:left">${`<b>${title}</b>`}${inner}</div>`;
   };
@@ -4066,7 +4288,7 @@ function gcTc(a, b){
 function geoChain(){
   const h = state.head||{};
   const ic = x => { x = String(x||"").trim().toUpperCase(); return /^[A-Z]{4}$/.test(x) ? x : null; };
-  const co = i => i && apCache[i] ? apCache[i] : null;
+  const co = i => { if (!i) return null; if (apCache[i]) return apCache[i]; const d = apLookup(i); return d && isFinite(d.lat) && isFinite(d.lon) ? {lat:d.lat, lon:d.lon} : null; };
   const wps = [{name: ic(h.dep)||"DEP", c: co(ic(h.dep)), icao: ic(h.dep)}];
   state.legs.forEach((l,i)=>{
     let name = String(l.route||"").trim(), icao = ic(name);
@@ -4114,7 +4336,10 @@ async function elevFt(points){
     const r = await fetch(u);
     if (!r.ok) throw new Error("HTTP " + r.status);
     const j = await r.json();
-    for (const m of (j.elevation || [])) out.push(m == null ? 0 : m * 3.28084);
+    const ev = Array.isArray(j.elevation) ? j.elevation : [];
+    if (ev.length !== ch.length || ev.some(m => m == null || !isFinite(m)))
+      throw new Error(`Geländedaten unvollständig (${ev.filter(m => m != null && isFinite(m)).length} von ${ch.length} Punkten) — MSA nicht gesetzt`);
+    for (const m of ev) out.push(m * 3.28084);
   }
   return out;
 }
@@ -4197,6 +4422,9 @@ function fillGeoLegs(only){
     }
     else if (!altn.c && !missing.includes(altn.name)) missing.push(altn.name);
   }
+  { const G = geoSigs();
+    state.legs.forEach((l,i) => { if (!only || only === "all" || only === "a" || only.has(i)) if (G.legs[i].p0 && G.legs[i].p1){ l.geoSig = G.legs[i].sig; l.geoStale = false; } });
+    if ((!only || only === "all" || only === "a") && G.a.p0 && G.a.p1){ state.altn.geoSig = G.a.sig; state.altn.geoStale = false; } }
   return {filled, missing};
 }
 /* ---------- Karte (Leaflet, eingebettet) ---------- */
