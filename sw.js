@@ -1,5 +1,5 @@
 /* FlyCademy FlightLog — Offline-Speicher (Service Worker) */
-const CACHE = "fcy-fl-2026-09-29f";
+const CACHE = "fcy-fl-2026-09-29g";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png",
   "icon-maskable-512.png", "apple-touch-icon.png", "jspdf.umd.min.js", "html2canvas.min.js"];
 
@@ -17,7 +17,9 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   /* App-Seite: zuerst Netz (Updates kommen sofort an), offline aus dem Speicher */
   if (req.mode === "navigate"){
-    e.respondWith(fetch(req).then(res => {
+    /* „no-cache“: beim Server nachfragen (ETag, meist nur 304) statt die bis zu 10 min alte Browser-Kopie
+       von GitHub Pages zu nehmen — neue Versionen sind sofort da */
+    e.respondWith(fetch(req.url, {cache: "no-cache", credentials: "same-origin"}).then(res => {
       if (res.ok){ const copy = res.clone(); caches.open(CACHE).then(c => c.put("index.html", copy)); }
       return res;
     }).catch(() => caches.match("index.html").then(r => r || caches.match("./"))));
