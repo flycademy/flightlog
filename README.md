@@ -10,7 +10,7 @@ Stand: Build 2026-09-26c
    (nicht den Ordner, sondern die Dateien darin) in das Fenster ziehen → unten **Commit changes**.
 3. **Settings** → links **Pages** → unter *Build and deployment*: Source **Deploy from a branch**,
    Branch **main**, Ordner **/ (root)** → **Save**.
-4. Nach 1–2 Minuten erscheint oben die Adresse, z. B. `https://BENUTZERNAME.github.io/flightlog/`.
+4. Nach 1–2 Minuten erscheint oben die Adresse, z. B. `https://flycademy.github.io/flightlog/`.
 
 ## Auf dem iPhone / iPad installieren
 
