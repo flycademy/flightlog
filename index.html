@@ -131,6 +131,9 @@
     .tblwrap{-webkit-overflow-scrolling:touch}
   }
 .fuelwrap{border:0;border-radius:0}
+.restorebar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 14px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);font-size:13.5px}
+.restorebar span{flex:1 1 260px}
+.restorebar small{color:var(--mut)}
 .navwarn{margin:10px 0 0;font-size:13px}
 .navwarn .nw-bad{border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:8px 12px}
 .navwarn .nw-bad ul{margin:4px 0 0;padding-left:18px}
@@ -1057,6 +1060,7 @@ input.dflt{color:var(--mut)}
       <button id="btnReset" type="button">Zurücksetzen</button>
     </div>
   </header>
+  <div id="restoreBar" class="restorebar" hidden></div>
 
   <section>
     <h2>Flugdaten</h2>
@@ -1162,9 +1166,10 @@ input.dflt{color:var(--mut)}
       </div></details>
       <div class="arow"><button id="btnMap" class="primary" type="button">Karte anzeigen / aktualisieren</button>
         <button id="btnAltnSet" type="button" title="Der nächste Kartenklick wählt den nächstgelegenen Flugplatz als Alternate (auch in den Kopfdaten) — erneut klicken bricht ab">ALTN per Klick setzen</button>
-        <button class="qm" type="button" aria-label="Erklärung" data-help="Route direkt auf der Karte bauen: Ein Klick hängt einen Wegpunkt ans Routenende (Häkchen), Ziehen der Streckenlinie fügt einen Punkt zwischen zwei Nachbarn ein, runde Marker lassen sich verschieben, das ✕ am Marker löscht den Punkt — eckige Flugplatz-Marker (ARP) sind fest. „ALTN per Klick setzen" wählt mit dem nächsten Klick den nächstgelegenen Flugplatz als Ausweich (er landet auch im ALTN-Kopffeld); trifft der Klick keinen Platz, wird frei verortet. Distanz, TC, VAR und Kartenbild laufen automatisch nach. Grundkarte: OSM Deutschland (FOSSGIS), Luftfahrt-Overlay: openAIP — Lufträume, Plätze, Navaids, automatisch aktiv.">?</button></div>
+        <button class="qm" type="button" aria-label="Erklärung" data-help="Route direkt auf der Karte bauen: Ein Klick neben die Route hängt einen Wegpunkt ans Routenende (Häkchen). Ein Klick auf die Streckenlinie setzt einen Koppelpunkt genau auf die Linie — das Leg wird geteilt, Kurs, Höhe, TAS und Wind bleiben, die Distanz wird aufgeteilt. Mit „nur entlang der Linie verschieben“ gleiten Zwischenpunkte beim Ziehen auf der Geraden zwischen ihren Nachbarn. Ziehen der Streckenlinie fügt einen frei platzierten Punkt ein, runde Marker lassen sich verschieben, das ✕ am Marker löscht den Punkt — eckige Flugplatz-Marker (ARP) sind fest. „ALTN per Klick setzen" wählt mit dem nächsten Klick den nächstgelegenen Flugplatz als Ausweich (er landet auch im ALTN-Kopffeld); trifft der Klick keinen Platz, wird frei verortet. Distanz, TC, VAR und Kartenbild laufen automatisch nach. Grundkarte: OSM Deutschland (FOSSGIS), Luftfahrt-Overlay: openAIP — Lufträume, Plätze, Navaids, automatisch aktiv.">?</button></div>
       <div class="mapopts">
-        <label><input type="checkbox" id="chkAdd" checked> Klick fügt Wegpunkt ans Routenende</label>
+        <label><input type="checkbox" id="chkAdd" checked> Klick fügt Wegpunkt hinzu — auf der Linie als Koppelpunkt, sonst ans Routenende</label>
+        <label><input type="checkbox" id="chkOnLine"> Punkte nur entlang der Linie verschieben (Kurs bleibt)</label>
         <label><input type="checkbox" id="chkSnap" checked> An Punkten einrasten (Plätze/VRP/IFR/Navaids)</label>
         <label><input type="checkbox" id="chkPts" checked> IFR-Fixe/Meldepunkte anzeigen</label>
         <div class="mo-info">
@@ -1775,7 +1780,7 @@ const AIRCRAFT = {
 
 const LS_KEY = "fcy-flightlog-draft-v2";
 const $ = id => document.getElementById(id);
-const BUILD = "2026-09-26c";
+const BUILD = "2026-09-26g";
 /* Open-Meteo: mit Schlüssel (kommerzielle Lizenz) laufen alle Abrufe über die customer-Server */
 const OM_KEY_LS = "fcy-om-key";
 function omKey(){ try{ return (localStorage.getItem(OM_KEY_LS) || "").trim(); }catch(e){ return ""; } }
@@ -1793,17 +1798,19 @@ function omUrl(u){
 })();
 const HOME_ICAO = "EDVE";   /* Heimatbasis: DEP/DEST-Voreinstellung */
 const DEF_ALT = 2000;       /* Standard-Reiseflughöhe ft, wenn nirgends eine Höhe steht */
+const ETD_LEAD_MIN = 30;   /* vorbelegte Abflugzeit: jetzt + 30 min UTC */
 function headDefaults(s){
   if (!s.head) s.head = {};
   if (!String(s.head.dep||"").trim()){ s.head.dep = HOME_ICAO; s.head.depDflt = true; }
   if (!String(s.head.dest||"").trim()){ s.head.dest = HOME_ICAO; s.head.destDflt = true; }
-  const now = new Date();
-  /* Solange nie angefasst, bei jedem Öffnen auf das aktuelle UTC-Datum/-Uhrzeit auffrischen */
+  /* Vorbelegung: Abflug = jetzt + 30 min (UTC); das Datum folgt der ETD, auch über Mitternacht UTC.
+     Solange nie angefasst, bei jedem Öffnen aufgefrischt */
+  const etd0 = new Date(Date.now() + ETD_LEAD_MIN * 60000);
   if (!String(s.head.date||"").trim() || s.head.dateDflt){
-    s.head.date = now.toISOString().slice(0,10); s.head.dateDflt = true;
+    s.head.date = etd0.toISOString().slice(0,10); s.head.dateDflt = true;
   }
   if (!String(s.head.etd||"").trim() || s.head.etdDflt){
-    s.head.etd = String(now.getUTCHours()).padStart(2,"0") + ":" + String(now.getUTCMinutes()).padStart(2,"0");
+    s.head.etd = String(etd0.getUTCHours()).padStart(2,"0") + ":" + String(etd0.getUTCMinutes()).padStart(2,"0");
     s.head.etdDflt = true;
   }
   return s;
@@ -1971,7 +1978,11 @@ function defaultState(cs){
 function loadState(){
   try{
     const raw = localStorage.getItem(LS_KEY);
-    if (raw){ const s = JSON.parse(raw);
+    if (raw){ const s = migrateState(JSON.parse(raw)); if (s) return s; }
+  }catch(e){ /* storage unavailable — run without persistence */ }
+  return defaultState();
+}
+function migrateState(s){
       if (s && s.legs && AIRCRAFT[s.callsign]){
         if(!s.wx) s.wx={extra:""};
         if (s.pwr === undefined || s.pwr === null){
@@ -1986,12 +1997,65 @@ function loadState(){
           s.wb = Object.assign({ masses:null, fuelTo:"", fuelLdg:"", density:ac0.density, fuelArm:ac0.fuelArm }, s.wb || {});
           if (s.wb.density == null || s.wb.density === "") s.wb.density = ac0.density;
           if (s.wb.fuelArm == null || s.wb.fuelArm === "") s.wb.fuelArm = ac0.fuelArm; }
-        return headDefaults(s); } }
-  }catch(e){ /* storage unavailable — run without persistence */ }
-  return defaultState();
+        return headDefaults(s); }
+  return null;
+}
+/* Jeder Seitenaufruf beginnt mit einem leeren Plan; der vorige bleibt als „letzter Plan" wiederherstellbar
+   (iOS lädt Seiten und Home-Bildschirm-Apps im Hintergrund gelegentlich selbst neu) */
+const LS_LAST = "fcy-flightlog-last";
+function planHasContent(s){
+  if (!s) return false;
+  const txt = v => String(v ?? "").trim() !== "";
+  /* nur echte Eingaben zählen — TAS/ALT werden automatisch vorbelegt */
+  const legs = (s.legs || []).some(l => ["route","dist","tc","wd","ws"].some(k => txt(l[k])) || l.lat != null);
+  const h = s.head || {}, f = s.fuel || {}, a = s.altn || {};
+  return legs || txt(f.fob) || txt(h.pilot) || txt(h.altn) || txt(a.route) || a.lat != null
+    || (s.wb && (txt(s.wb.fuelTo) || txt(s.wb.fuelLdg)));
+}
+function stashPlan(s){
+  if (!planHasContent(s)) return;
+  try{ localStorage.setItem(LS_LAST, JSON.stringify({ts: s.savedAt || Date.now(), state: s})); }catch(e){}
+}
+function freshState(){
+  const prev = loadState();
+  if (window.FCY_KEEP_DRAFT) return prev;          /* nur für automatische Tests */
+  stashPlan(prev);
+  const s = defaultState();
+  s.apElev = prev.apElev || {};                    /* Nachschlagedaten, keine Eingaben */
+  s.ui = prev.ui || {};
+  s.map = prev.map || {};                          /* Karten-Einstellungen (Häkchen) bleiben */
+  return s;
+}
+function lastPlan(){
+  try{ const o = JSON.parse(localStorage.getItem(LS_LAST) || "null"); if (o && o.state && migrateState(o.state)) return o; }catch(e){}
+  return null;
+}
+function restoreBarSync(){
+  const bar = $("restoreBar"); if (!bar) return;
+  const o = lastPlan();
+  if (!o || bar.dataset.dismissed){ bar.hidden = true; return; }
+  const s = o.state, h = s.head || {}, d = new Date(o.ts);
+  const when = `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}. ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  const route = [h.dep, h.dest].map(x => String(x || "").trim().toUpperCase()).filter(Boolean).join(" → ");
+  bar.innerHTML = `<span>Letzter Plan: <b>${esc(s.callsign)}${route ? " · " + esc(route) : ""}</b> <small>(bearbeitet ${esc(when)})</small></span>
+    <button type="button" class="primary" id="btnRestore">Wiederherstellen</button><button type="button" id="btnRestoreHide">Ausblenden</button>`;
+  bar.hidden = false;
+  $("btnRestore").addEventListener("click", () => {
+    const o2 = lastPlan(); if (!o2) return;
+    const cur = state;
+    state = migrateState(o2.state);
+    state.apElev = Object.assign({}, state.apElev || {}, cur.apElev || {});
+    state.ui = cur.ui || state.ui || {};
+    state.map = cur.map || state.map || {};
+    stashPlan(cur);                                  /* der gerade verworfene Plan bleibt seinerseits abrufbar */
+    $("callsign").value = state.callsign;
+    hydratePwr(); hydrateHead(); render(); saveState();
+    bar.dataset.dismissed = "1"; bar.hidden = true;
+  });
+  $("btnRestoreHide").addEventListener("click", () => { bar.dataset.dismissed = "1"; bar.hidden = true; });
 }
 function saveState(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){ /* ignore */ }
+  try{ state.savedAt = Date.now(); localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){ /* ignore */ }
 }
 
 /* ---------- wind triangle (same convention as the workbook, corrected time) ---------- */
@@ -2039,7 +2103,7 @@ function legInputs(l, idx, isAltn){
   const hh2 = state.head||{};
   const rph = isAltn
     ? (String(hh2.altn||"").trim() ? String(hh2.altn).trim().toUpperCase() : "Alternate")
-    : (idx === state.legs.length-1 && String(hh2.dest||"").trim() ? String(hh2.dest).trim().toUpperCase() : "Waypoint");
+    : (l.lat != null ? wpLabel(idx) : (idx === state.legs.length-1 && String(hh2.dest||"").trim() ? String(hh2.dest).trim().toUpperCase() : "Waypoint"));
   h += `<td class="route${isAltn ? " rend" : ""}"><div class="rt">${isAltn ? `<small class="wtag">ALTN</small>` : ""}<input data-k="route" data-i="${p}" value="${esc(l.route)}" placeholder="${esc(rph)}">`+
        `<button type="button" class="pin${l.lat!=null?" set":""}" data-geo="${p}" `+
        `title="${l.lat!=null?"Verortet: "+esc(l.loc||"")+" — klicken zum Ändern":"Wegpunkt verorten"}" aria-label="Wegpunkt verorten">📍</button></div></td>`;
@@ -2196,7 +2260,7 @@ function render(){
     const destSet = String(hh.dest||"").trim().toUpperCase();
     const isDest = i === N-1 && destSet &&
       ((String(l.route||"").trim() === "" && l.lat == null) || String(l.route).trim().toUpperCase() === destSet);
-    const rph = (i === N-1 && destSet) ? destSet : "Waypoint";
+    const rph = l.lat != null ? wpLabel(i) : ((i === N-1 && destSet) ? destSet : "Waypoint");
     put(s + h2 - 1, 0, `<td class="route${isDest ? " rend" : ""}"${sp(wpSpan)}><div class="rt">${isDest ? `<small class="wtag">DEST</small>` : ""}<input data-k="route" data-i="${p}" value="${esc(l.route)}" placeholder="${esc(rph)}">`+
       `<button type="button" class="pin${l.lat!=null?" set":""}" data-geo="${p}" `+
       `title="${l.lat!=null?"Verortet: "+esc(l.loc||"")+" — klicken zum Ändern":"Wegpunkt verorten"}" aria-label="Wegpunkt verorten">📍</button>`+
@@ -2333,12 +2397,18 @@ function geoSigMark(key){
   const i = parseInt(String(key).replace(/^l/, ""), 10);
   if (state.legs[i]) state.legs[i].geoSig = G.legs[i].sig;
 }
+/* Anzeigename eines Wegpunkts — unbenannte Pins tragen die Nummer ihres Kartenmarkers */
+function wpLabel(i){
+  const l = state.legs[i] || {}, r = String(l.route || "").trim();
+  if (r) return r;
+  const d = String((state.head || {}).dest || "").trim().toUpperCase();
+  if (i === state.legs.length - 1 && d && l.lat == null) return d;
+  if (l.lat != null) return (l.loc && l.loc !== "Pin") ? l.loc : `Pin ${i+1}`;
+  return `WP ${i+1}`;
+}
 function legLabel(i){
   const l = state.legs[i] || {}, r = String(l.route || "").trim();
-  if (r) return r.toUpperCase();
-  const d = String((state.head || {}).dest || "").trim().toUpperCase();
-  if (i === state.legs.length - 1 && d) return d;
-  return (l.loc && l.loc !== "Pin") ? l.loc : `Leg ${i+1}`;
+  return r ? r.toUpperCase() : wpLabel(i);
 }
 /* ---- Eingabeprüfung Nav Log und Vollständigkeit der Flugzeit ---- */
 function fieldBad(o, spec){
@@ -2611,7 +2681,7 @@ function switchAircraft(cs){
   hydratePwr(); render(); saveState();
 }
 function init(){
-  state = loadState();
+  state = freshState();
   const sel = $("callsign");
   sel.innerHTML = Object.keys(AIRCRAFT).map(k=>`<option${k===state.callsign?" selected":""}>${k}</option>`).join("");
   sel.addEventListener("change", ()=> switchAircraft(sel.value));
@@ -2795,6 +2865,8 @@ function init(){
   $("chkSnap").addEventListener("change", e=>{ state.map.snapOn = e.target.checked; saveState(); });
   $("chkAdd").checked = !(state.map && state.map.addOn === false);
   $("chkAdd").addEventListener("change", e=>{ state.map.addOn = e.target.checked; saveState(); });
+  $("chkOnLine").checked = !!(state.map && state.map.onLine);
+  $("chkOnLine").addEventListener("change", e=>{ state.map.onLine = e.target.checked; saveState(); });
   $("btnAltnSet").addEventListener("click", ()=> altnOneshotSet(!ALTN_ONESHOT));
   $("chkPts").checked = !(state.map && state.map.ptsOn === false);
   $("chkPts").addEventListener("change", e=>{ state.map.ptsOn = e.target.checked; saveState(); ptsLayerSync(); });
@@ -2831,10 +2903,16 @@ function init(){
   window.addEventListener("beforeprint", ()=>{ $("printSheet").innerHTML = buildForMode(); });
   $("btnReset").addEventListener("click", ()=>{
     if (confirm("Alle Eingaben löschen?")){
+      stashPlan(state);                              /* über „Wiederherstellen" zurückholbar */
       try{ localStorage.removeItem(LS_KEY); }catch(e){}
-      state = defaultState(state.callsign); hydrateHead(); render();
+      const keep = {apElev: state.apElev, ui: state.ui, map: state.map};
+      state = defaultState(state.callsign); Object.assign(state, keep);
+      hydrateHead(); render(); saveState();
+      const bar = $("restoreBar"); if (bar) delete bar.dataset.dismissed;
+      restoreBarSync();
     }
   });
+  restoreBarSync();
 
   hydratePwr(); hydrateHead(); render();
 }
@@ -3425,7 +3503,7 @@ function buildKneeSheet(){
   const wpName = i2 => {
     const r = String(state.legs[i2].route||"").trim();
     if (r) return r.toUpperCase();
-    return i2 === state.legs.length-1 && String(h.dest||"").trim() ? String(h.dest).trim().toUpperCase() : "WP " + (i2+1);
+    return wpLabel(i2);
   };
   const thRow = `<tr><th class="ps-th">Wegpunkt</th><th class="ps-th">MC °</th><th class="ps-th">MH °</th><th class="ps-th">ALT ft</th><th class="ps-th">MSA ft</th><th class="ps-th">NM</th><th class="ps-th">Zeit</th><th class="ps-th">ETO</th><th class="ps-th">ATO</th></tr>`;
   const cg = `<colgroup><col style="width:17.5%"><col style="width:8.5%"><col style="width:11.5%"><col style="width:8.5%"><col style="width:8.5%"><col style="width:8%"><col style="width:8.5%"><col style="width:14.5%"><col style="width:14.5%"></colgroup>`;
@@ -3590,8 +3668,7 @@ function buildPrintSheet(){
       let name = "";
       if (i === 0) name = (h.dep||"").toUpperCase();
       else if (state.legs[i-1]){
-        name = state.legs[i-1].route;
-        if (!String(name).trim() && i-1 === state.legs.length-1) name = (h.dest||"").toUpperCase();
+        name = String(state.legs[i-1].route || "").trim() ? state.legs[i-1].route : wpLabel(i-1);
       }
       const eto = i===0 ? (h.etd||"") : (state.legs[i-1] ? state.legs[i-1].eto : "");
       const ato = i===0 ? "" : (state.legs[i-1] ? state.legs[i-1].ato : "");
@@ -4288,7 +4365,7 @@ function gcTc(a, b){
 function geoChain(){
   const h = state.head||{};
   const ic = x => { x = String(x||"").trim().toUpperCase(); return /^[A-Z]{4}$/.test(x) ? x : null; };
-  const co = i => { if (!i) return null; if (apCache[i]) return apCache[i]; const d = apLookup(i); return d && isFinite(d.lat) && isFinite(d.lon) ? {lat:d.lat, lon:d.lon} : null; };
+  const co = apCoord;
   const wps = [{name: ic(h.dep)||"DEP", c: co(ic(h.dep)), icao: ic(h.dep)}];
   state.legs.forEach((l,i)=>{
     let name = String(l.route||"").trim(), icao = ic(name);
@@ -4462,6 +4539,13 @@ function ensureDestLeg(){
   state.legs.push(nl);
   return true;
 }
+/* Flugplatzkoordinaten: Zwischenspeicher (auch Fernabfrage), sonst eingebettete Datenbank — eine Quelle für Strecke UND Karte */
+function apCoord(i){
+  if (!i) return null;
+  if (apCache[i]) return apCache[i];
+  const d = apLookup(i);
+  return d && isFinite(d.lat) && isFinite(d.lon) ? {lat:d.lat, lon:d.lon} : null;
+}
 async function resolveChainIcaos(){
   const {wps, altn} = geoChain();
   const need = [...new Set([...wps, altn].filter(w => !w.c && w.icao).map(w => w.icao))];
@@ -4481,7 +4565,7 @@ function mapPoints(){
     return seqA[i2] ?? null;
   };
   const ic = x => { x = String(x||"").trim().toUpperCase(); return /^[A-Z]{4}$/.test(x) ? x : null; };
-  const co = i => i && apCache[i] ? apCache[i] : null;
+  const co = apCoord;
   const pts = [];
   const dep = ic(h.dep);
   if (co(dep)) pts.push({kind:"apt", label:dep, c:co(dep)});
@@ -4492,7 +4576,7 @@ function mapPoints(){
     if (!name && isLast){ icao = ic(h.dest); name = icao||""; }
     const isDest = isLast && dvIc != null && ic(name) === dvIc;
     const lblAlt = isDest && String(l.alt||"").trim() === "" ? null : wpAlt(i);
-    if (l.lat!=null && l.lon!=null) pts.push({kind:"leg", i, dest:isDest, label:name||l.loc||("WP"+(i+1)), c:{lat:l.lat, lon:l.lon}, alt:lblAlt});
+    if (l.lat!=null && l.lon!=null) pts.push({kind:"leg", i, dest:isDest, label:name||wpLabel(i), c:{lat:l.lat, lon:l.lon}, alt:lblAlt});
     else if (co(icao)){
       if (!String(l.route||"").trim() && isLast) pts.push({kind:"apt", label:icao, c:co(icao)});
       else pts.push({kind:"leg", i, dest:isDest, label:icao, c:co(icao), alt:lblAlt});
@@ -4742,8 +4826,19 @@ function mapMarker(p){
       d.addEventListener("touchend", del);   /* Touch: sofort beim Loslassen */
       d.addEventListener("click", del);      /* Maus */
     });
+    const onLine = () => state.map && state.map.onLine && p.kind === "leg" && !p.dest && p._prev && p._next;
+    mk.on("drag", e=>{
+      if (!onLine()) return;
+      const P = mercInterp(p._prev, p._next, Math.min(0.98, Math.max(0.02, lineT(p._prev, p._next, e.latlng))));
+      mk.setLatLng([P.lat, P.lon]);
+    });
     mk.on("dragend", e=>{
       const pos = e.target.getLatLng();
+      if (onLine()){
+        legSlide(p.i, p._prev, p._next, lineT(p._prev, p._next, pos));
+        render(); saveState();
+        return;
+      }
       const isAltn = p.kind !== "leg";
       const l = isAltn ? state.altn : state.legs[p.i];
       if (!isAltn && p.dest){
@@ -4757,6 +4852,54 @@ function mapMarker(p){
     });
   }
   return mk;
+}
+/* ---- Koppelpunkte auf der Streckenlinie: Leaflet zeichnet Geraden in Web-Mercator (= Loxodrome) ---- */
+function mercY(lat){ return Math.log(Math.tan(Math.PI/4 + rad(lat)/2)); }
+function mercLat(y){ return deg(2*Math.atan(Math.exp(y)) - Math.PI/2); }
+function mercInterp(a, b, t){ return {lat: mercLat(mercY(a.lat) + t*(mercY(b.lat) - mercY(a.lat))), lon: a.lon + t*(b.lon - a.lon)}; }
+function lineSigFix(i0, i1){
+  const G = geoSigs();
+  for (const i of [i0, i1]) if (state.legs[i] && G.legs[i]){ state.legs[i].geoSig = G.legs[i].sig; state.legs[i].geoStale = false; }
+}
+/* Klick auf die Linie: Leg A→B bei Anteil t teilen — Kurs, Höhe, TAS, Wind, VAR und MSA bleiben, Distanz wird aufgeteilt */
+function legSplitAt(A, B, legIdx, t){
+  const L0 = state.legs[legIdx];
+  if (!L0 || !A || !B || !(t > 0.02 && t < 0.98)) return -1;
+  const P = mercInterp(A, B, t);
+  const nl = blankLeg(L0.tas || (AIRCRAFT[state.callsign] || {}).climbTas);
+  for (const k of ["alt","tas","wd","ws","var","msa"]) if (L0[k] !== undefined) nl[k] = L0[k];
+  nl.lat = round5(P.lat); nl.lon = round5(P.lon); nl.loc = "Pin"; nl.route = ""; nl.onLine = true;
+  const tc = String(L0.tc ?? "").trim() !== "" ? String(L0.tc).trim() : String(Math.round(gcTc(A, B)) % 360);
+  const dTot = num(L0.dist) ?? gcNm(A, B);
+  const d1 = Math.round(gcNm(A, P) * 10) / 10;
+  nl.tc = tc; nl.dist = String(d1);
+  L0.tc = tc; L0.dist = String(Math.max(0.1, Math.round((dTot - d1) * 10) / 10));
+  state.legs.splice(legIdx, 0, nl);
+  lineSigFix(legIdx, legIdx + 1);
+  return legIdx;
+}
+/* Verschieben nur entlang der Linie zwischen den Nachbarn A und B */
+function legSlide(i, A, B, t){
+  const l = state.legs[i], n = state.legs[i + 1];
+  if (!l || !A || !B) return;
+  t = Math.min(0.98, Math.max(0.02, t));
+  const P = mercInterp(A, B, t);
+  const tcA = String(l.tc ?? "").trim(), tcB = n ? String(n.tc ?? "").trim() : "";
+  const straight = tcA !== "" && tcA === tcB;                 /* lag schon auf der Linie → Kurs und Gesamtstrecke behalten */
+  const tc = straight ? tcA : String(Math.round(gcTc(A, B)) % 360);
+  const dSum = (num(l.dist) ?? NaN) + (n ? (num(n.dist) ?? NaN) : 0);
+  const dTot = straight && isFinite(dSum) ? dSum : gcNm(A, B);
+  const d1 = Math.round(gcNm(A, P) * 10) / 10;
+  l.lat = round5(P.lat); l.lon = round5(P.lon); l.onLine = true;
+  l.tc = tc; l.dist = String(d1);
+  if (n){ n.tc = tc; n.dist = String(Math.max(0.1, Math.round((dTot - d1) * 10) / 10)); }
+  lineSigFix(i, i + 1);
+}
+/* Anteil t des Mauspunkts auf der Geraden A→B (Bildschirmkoordinaten = Mercator) */
+function lineT(A, B, ll){
+  const a = MAP.latLngToContainerPoint([A.lat, A.lon]), b = MAP.latLngToContainerPoint([B.lat, B.lon]), p = MAP.latLngToContainerPoint(ll);
+  const vx = b.x - a.x, vy = b.y - a.y, L2 = vx*vx + vy*vy;
+  return L2 > 0 ? ((p.x - a.x)*vx + (p.y - a.y)*vy) / L2 : 0.5;
 }
 /* Rubber-Band-Routing: Streckenlinie ziehen fuegt einen Wegpunkt zwischen den Nachbarn ein */
 const RDRAG = {until:0};
@@ -4891,7 +5034,14 @@ function routeDragify(pl, pts){
       MAP.dragging.enable();
       if (ghost) MAP.removeLayer(ghost);
       if (moved >= 6){ routeInsertAt(pts, s.k, cur); RDRAG.until = Date.now() + 400; }
-      else { RDRAG.until = Date.now() + 400; } /* Klick ohne Zug auf der Linie: nichts anhängen, Click-Echo schlucken */
+      else {
+        RDRAG.until = Date.now() + 400;                 /* Click-Echo schlucken */
+        if (state.map && state.map.addOn === false) return;
+        /* Klick auf die Linie: Koppelpunkt genau auf der Strecke, ohne Kursänderung */
+        const A = pts[s.k].c, B = pts[s.k + 1].c, tgt = pts[s.k + 1];
+        const idx = tgt && tgt.kind === "leg" ? tgt.i : Math.max(0, state.legs.length - 1);
+        if (legSplitAt(A, B, idx, lineT(A, B, ll)) >= 0){ render(); saveState(); }
+      }
     };
     if (isTouch){
       const mv = ev => { if (ev.touches && ev.touches.length){ const t = ev.touches[0], r = MAP.getContainer().getBoundingClientRect();
@@ -4927,6 +5077,7 @@ function mapSync(fit){
     mapLines.push(pl, hit);
   }
   if (ap && route.length) mapLines.push(L.polyline([route[route.length-1], [ap.c.lat, ap.c.lon]], {color:"#8a5cf6", weight:2, dashArray:"6 6", opacity:.85}).addTo(MAP));
+  pts.forEach((p, j) => { p._prev = pts[j-1] ? pts[j-1].c : null; p._next = pts[j+1] ? pts[j+1].c : null; });
   for (const p of pts) mapMarks.push(mapMarker(p).addTo(MAP));
   if (ap) mapMarks.push(mapMarker(ap).addTo(MAP));
   /* TOC/TOD entlang der Kette */
@@ -5008,7 +5159,7 @@ async function collectPoints(signal){
   if (dep && am[dep]) pts.push({key:"dep", label:dep, lat:am[dep].lat, lon:am[dep].lon});
   state.legs.forEach((l,i)=>{
     if (l.lat!=null && l.lon!=null)
-      pts.push({key:"l"+i, label:shortLbl(l.loc||l.route||("WP"+(i+1))), lat:l.lat, lon:l.lon});
+      pts.push({key:"l"+i, label:shortLbl((l.loc && l.loc !== "Pin" ? l.loc : "") || l.route || wpLabel(i)), lat:l.lat, lon:l.lon});
   });
   if (dest && am[dest]) pts.push({key:"dest", label:dest, lat:am[dest].lat, lon:am[dest].lon});
   const a = state.altn;
