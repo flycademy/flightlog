@@ -1831,7 +1831,7 @@ const AIRCRAFT = {
 
 const LS_KEY = "fcy-flightlog-draft-v2";
 const $ = id => document.getElementById(id);
-const BUILD = "2026-09-29g";
+const BUILD = "2026-09-29h";
 /* Open-Meteo: mit Schlüssel (kommerzielle Lizenz) laufen alle Abrufe über die customer-Server */
 const OM_KEY_LS = "fcy-om-key";
 function omKey(){ try{ return (localStorage.getItem(OM_KEY_LS) || "").trim(); }catch(e){ return ""; } }
@@ -4256,7 +4256,7 @@ function renderPreservingFocus(t){
 /* M&B-Felder: beim Antippen ganzen Inhalt markieren → erste Ziffer ersetzt die Vorgabe (z. B. Pilot 85).
    Nicht bei der Fokus-Wiederherstellung nach dem Neuzeichnen, sonst ersetzte jede Ziffer die vorige. */
 let PF_RESTORE = false;
-const SEL_ALL = 'input[data-wb], #fuelTo, #fuelLdg, #fuelDens, #fuelArm';
+const SEL_ALL = 'input[data-wb], #fuelTo, #fuelLdg, #fuelDens, #fuelArm, #dep, #dest, #altn, input.dflt';   /* ICAO-Felder (max. 4 Zeichen) und grau vorbelegte Felder: Antippen = ersetzen */
 document.addEventListener("focusin", e => {
   const t = e.target;
   if (PF_RESTORE || !t || !t.matches || !t.matches(SEL_ALL)) return;
