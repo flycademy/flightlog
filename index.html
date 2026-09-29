@@ -1831,7 +1831,7 @@ const AIRCRAFT = {
 
 const LS_KEY = "fcy-flightlog-draft-v2";
 const $ = id => document.getElementById(id);
-const BUILD = "2026-09-29h";
+const BUILD = "2026-09-30f";
 /* Open-Meteo: mit Schlüssel (kommerzielle Lizenz) laufen alle Abrufe über die customer-Server */
 const OM_KEY_LS = "fcy-om-key";
 function omKey(){ try{ return (localStorage.getItem(OM_KEY_LS) || "").trim(); }catch(e){ return ""; } }
@@ -1897,6 +1897,13 @@ const fmtT = min => {
   const t = Math.round(min), h = Math.floor(t/60), m = t % 60;
   return h + ":" + String(m).padStart(2,"0");
 };
+/* Angezeigte Leg-/Restzeiten aus gerundeten Summenzeiten: Leg = Differenz zweier gerundeter Summen.
+   So ergeben die angezeigten Legs immer exakt die Summen- und Restzeiten (übliches Navlog-Verfahren). */
+function roundedLegMins(mins){
+  let c = 0, prevR = 0; const leg = [], before = [];
+  (mins || []).forEach((m, i) => { before[i] = prevR; if (m == null || !isFinite(m)){ leg[i] = null; return; } c += m; const r = Math.round(c); leg[i] = r - prevR; prevR = r; });
+  return {leg, before, total: prevR};
+}
 /* ---------- Top of Climb / Top of Descent ---------- */
 function tocTod(ac, totMin, totDist, calcs, altnMin){
   const out = {toc:null, tod:null, warns:[]};
@@ -1961,9 +1968,36 @@ function tocTod(ac, totMin, totDist, calcs, altnMin){
     }
   }
   out.events = [];
-  if (out.toc) out.events.push({t:"TOC", at: out.toc.nm, nm: out.toc.nm, min: out.toc.min, to: out.toc.to, initial:true});
-  out.events.push(...out.steps, ...out.descs);
-  if (out.tod && !out.tod.none && totDist) out.events.push({t:"TOD", at: totDist - out.tod.nm - lead, nm: out.tod.nm, gap: out.tod.nm + lead, min: out.tod.min, to: out.tod.to, final:true});
+  /* Steigflüge zusammenführen: Beginnt ein Stufensteigflug, bevor der vorige oben ist, steigt das Flugzeug
+     durchgehend — dann gibt es nur EINEN Merkpunkt (Erreichen der oberen Höhe), Entfernung ab Beginn des
+     durchgehenden Steigflugs. Die Zeitrechnung (out.steps / climbSpans) bleibt unverändert. */
+  const climbs = [];
+  if (out.toc) climbs.push({t:"TOC", at: out.toc.nm, nm: out.toc.nm, min: out.toc.min, to: out.toc.to, initial:true, start:0});
+  out.steps.forEach(s => climbs.push(Object.assign({}, s, {start: cum[s.leg]})));
+  climbs.sort((a,b) => a.start - b.start);
+  const cm = [];
+  for (const c of climbs){
+    const p = cm[cm.length-1];
+    if (p && c.start < p.at - 1e-6){
+      cm[cm.length-1] = Object.assign({}, c, {initial: !!p.initial, step: !p.initial, start: p.start, nm: c.at - p.start,
+        min: (p.min || 0) + (c.min || 0), from: p.from, merged:true, leg: p.initial ? c.leg : p.leg});
+    } else cm.push(c);
+  }
+  /* Sinkflüge ebenso: endet ein Sinkflug dort, wo der nächste beginnt (z. B. auf die Leg-Höhe und direkt weiter
+     zum TOD), wird die Zwischenhöhe nur durchflogen → EIN Merkpunkt am Sinkbeginn. at = Beginn, at + gap = Bezugspunkt
+     (Leg-Ende bzw. DEST), at + nm = Ende des Sinkflugs. */
+  const descs = out.descs.slice();
+  if (out.tod && !out.tod.none && totDist) descs.push({t:"TOD", at: totDist - out.tod.nm - lead, nm: out.tod.nm, gap: out.tod.nm + lead, min: out.tod.min, to: out.tod.to, final:true});
+  descs.sort((a,b) => a.at - b.at);
+  const dm = [];
+  for (const d of descs){
+    const p = dm[dm.length-1];
+    if (p && d.at <= p.at + p.nm + 0.05){
+      const ref = d.at + (d.gap ?? d.nm);
+      dm[dm.length-1] = Object.assign({}, d, {at: p.at, nm: (d.at + d.nm) - p.at, gap: ref - p.at, min: (p.min || 0) + (d.min || 0), merged:true});
+    } else dm.push(d);
+  }
+  out.events.push(...cm, ...dm);
   out.events.sort((a,b)=>a.at-b.at);
   if (out.toc && totDist && out.toc.nm > totDist)
     out.warns.push("Reiseflughöhe wird vor dem Ziel nicht erreicht — Steigzeit/ALT prüfen");
@@ -2272,9 +2306,9 @@ function render(){
   };
   (TT.events||[]).forEach(ev => {
     if (ev.initial && TT.toc)
-      locate(ev.at, {t:"TOC", txt:`▲ TOC · ${TT.toc.nm.toFixed(1)} NM`, tip:`Top of Climb: ${TT.toc.nm.toFixed(1)} NM / ${fmtT(TT.toc.min)} nach ${depIcao||"Start"} — Ø Steig-TAS ${TT.toc.tas} kt`});
+      locate(ev.at, {t:"TOC", txt:`▲ TOC · ${ev.nm.toFixed(1)} NM`, tip:`Top of Climb${ev.merged ? ` (durchgehend auf ${fmt0(ev.to)} ft)` : ""}: ${ev.nm.toFixed(1)} NM / ${fmtT(ev.min)} nach ${depIcao||"Start"} — Ø Steig-TAS ${TT.toc.tas} kt`});
     else if (ev.final && TT.tod)
-      locate(ev.at, {t:"TOD", txt:`▼ TOD · ${(ev.gap ?? ev.nm).toFixed(1)} NM`, tip:`Top of Descent: ${(ev.gap ?? ev.nm).toFixed(1)} NM vor ${String(hh.dest||"Ziel").toUpperCase()} — Sinkbeginn T+${fmtT(TT.tod.startMin)} (${TT.tod.rate} ft/min)`});
+      locate(ev.at, {t:"TOD", txt:`▼ TOD · ${(ev.gap ?? ev.nm).toFixed(1)} NM`, tip:`Top of Descent${ev.merged ? " (durchgehender Sinkflug)" : ""}: ${(ev.gap ?? ev.nm).toFixed(1)} NM vor ${String(hh.dest||"Ziel").toUpperCase()}${ev.merged ? "" : ` — Sinkbeginn T+${fmtT(TT.tod.startMin)}`} (${TT.tod.rate} ft/min)`});
     else if (ev.t === "TOC")
       locate(ev.at, {t:"TOC", txt:`▲ TOC ${fmt0(ev.to)} · ${ev.nm.toFixed(1)} NM`, tip:`Step-Climb auf ${fmt0(ev.to)} ft — TOC ${ev.nm.toFixed(1)} NM nach Beginn von Leg ${ev.leg+1} (${fmtT(ev.min)})${ev.poh?" · POH":""}`});
     else
@@ -2298,6 +2332,7 @@ function render(){
   { const fPH = PHalt.find(a => a != null) ?? DEF_ALT;
     for (let z = 0; z < PHalt.length; z++) if (PHalt[z] == null) PHalt[z] = fPH; }
   const PHac = AIRCRAFT[state.callsign];
+  const RLM = roundedLegMins(ADJ.mins);
   state.legs.forEach((l,i)=>{
     const s = starts[i], h2 = HH[i], c = calcs[i], p = "l"+i, S = sp(h2);
     if (i === 0){
@@ -2321,8 +2356,8 @@ function render(){
     legCalcCells(c, S).split("</td>").filter(x=>x).forEach((frag,ci)=> put(s, 8+ci, frag + "</td>"));
     put(s, 12, `<td${S}><input data-k="dist" data-i="${p}" value="${esc(l.dist)}" inputmode="decimal"></td>`);
     put(s, 13, `<td class="calc"${S}>${c.dist!=null?fmt0(rem[i].d):"–"}</td>`);
-    put(s, 14, `<td class="calc"${S}>${fmtT(ADJ.mins[i])}</td>`);
-    put(s, 15, `<td class="calc"${S}>${ADJ.mins[i]!=null?fmtT(rem[i].m):"–"}</td>`);
+    put(s, 14, `<td class="calc"${S}>${fmtT(RLM.leg[i])}</td>`);
+    put(s, 15, `<td class="calc"${S}>${ADJ.mins[i]!=null?fmtT(RLM.total - RLM.before[i]):"–"}</td>`);
     /* TOC/TOD-Marker in der Route-Spalte */
     marks[i].forEach((m,k)=>{
       put(s + 1 + 2*k, 0, `<td class="route"${sp(2)}><div class="wpmark${m.t==="TOD"?" tod":""}" title="${esc(m.tip)}">${m.txt}</div></td>`);
@@ -3755,7 +3790,8 @@ function buildKneeSheet(){
   const U = x => String(x || "").trim().toUpperCase();
   const f0 = v => v == null || !isFinite(v) ? "–" : String(Math.round(v));
   const f1 = v => v == null || !isFinite(v) ? "–" : (Math.round(v*10)/10).toLocaleString("de-DE",{minimumFractionDigits:1,maximumFractionDigits:1});
-  const tH = m => m == null || !isFinite(m) ? "–" : `${Math.floor(m/60)}:${String(Math.round(m%60)).padStart(2,"0")}`;
+  /* erst auf ganze Minuten runden, dann zerlegen (59,6 min → 1:00, nicht 0:60) */
+  const tH = m => { if (m == null || !isFinite(m)) return "–"; const r = Math.round(m); return `${Math.floor(r/60)}:${String(r%60).padStart(2,"0")}`; };
   const plus = m => m == null ? "" : "+" + tH(m);
   const CORE = tripCore(ac), {calcs, totDist, ca, TT, ADJ, totMin, FC} = CORE;
   const W = calcWB(ac);
@@ -3770,6 +3806,11 @@ function buildKneeSheet(){
   const cumD = [], cumAt = []; { let d = 0, c = 0;
     state.legs.forEach((l,i) => { d += num(l.dist) || 0; cumD[i] = d;
       const m = ADJ.mins && ADJ.mins[i] != null ? ADJ.mins[i] : calcs[i].min; c += m || 0; cumAt[i] = c; }); }
+  /* Navlog-Logik: am Wegpunkt „+Zeit“ = Leg-Zeit vom vorigen Wegpunkt (ETO = ATO vorher + Leg-Zeit);
+     in der Leg-Zelle Rest-Zeit bis zum Ziel und geplanter Kraftstoff an Bord, jeweils ab Beginn dieses Legs */
+  const RLK = roundedLegMins(state.legs.map((l,i) => ADJ.mins && ADJ.mins[i] != null ? ADJ.mins[i] : calcs[i].min));
+  const restMin = k => RLK.total - RLK.before[k];
+  const restFuel = k => soll(k === 0 ? 0 : cumAt[k-1]);   /* geplant an Bord am Wegpunkt vor diesem Leg — Vergleich mit der Tankanzeige */
   /* TOC/TOD als Merkpunkte ohne eigene Zeit — ihre Zeit steckt in der Leg-Zeit bis zum nächsten Wegpunkt */
   const evOn = state.legs.map(() => []);
   (TT.events || []).forEach(ev => {
@@ -3778,41 +3819,56 @@ function buildKneeSheet(){
     evOn[k].push(ev);
   });
   const evTxt = ev => {
-    if (ev.initial) return `<b>▲ TOC ${f1(ev.nm)} NM</b><br>nach ${esc(U(h.dep))}`;
+    if (ev.initial) return `<b>▲ TOC ${f1(ev.nm)} NM</b>`;   /* Steigflüge: nur die Entfernung ab Beginn des Steigflugs, ohne Bezugstext */
     if (ev.final) return `<b>▼ TOD ${f1(ev.gap ?? ev.nm)} NM</b><br>vor ${esc(U(h.dest))}`;
-    if (ev.t === "TOC") return `<b>▲ ${f0(ev.to)} ft</b><br>${f1(ev.nm)} NM nach ${esc(ev.leg > 0 ? wpLabel(ev.leg-1) : U(h.dep))}`;
+    if (ev.t === "TOC") return `<b>▲ ${f0(ev.to)} ft</b><br>${f1(ev.nm)} NM`;
     return `<b>▼ ${f0(ev.to)} ft</b><br>${f1(ev.gap ?? ev.nm)} NM vor ${esc(wpLabel(ev.leg))}`;
   };
   const wpL = k => { const s = k === 0 ? U(h.dep) : wpLabel(k-1);
     return s.length > 8 ? `<span class="lng">${esc(s)}</span>` : esc(s); };
-  const wpR = k => { const T = k === 0 ? 0 : cumAt[k-1];
-    return `<td class="fu" rowspan="2">${INC ? "–" : f0(soll(T))}</td><td class="tm" rowspan="2"><b>${plus(T)}</b></td><td class="bx" rowspan="2"></td><td class="bx" rowspan="2"></td>`; };
+  /* TOC/TOD-Zeilen haben rechts keine eigenen Kästen: Fuel/+Zeit/ETO/ATO des Wegpunkts davor laufen durch,
+     der Wert bleibt auf Höhe des Wegpunktnamens (.wv = Höhe zweier Halbzeilen) */
+  /* Kästen eines Wegpunkts (+Zeit = Leg-Zeit des ANKOMMENDEN Legs, ETO, ATO). Liegen auf diesem Leg TOC/TOD-Zeilen,
+     reicht der Kasten nach OBEN durch sie hindurch und endet am Wegpunkt; der Wert steht auf Höhe des Namens. */
+  const wpR = (k, up = 0) => { const T = k === 0 ? 0 : RLK.leg[k-1], rs = 2 + up;
+    const ex = up ? " extu" : "", v = x => up ? `<div class="wv">${x}</div>` : x;
+    return `<td class="tm${ex}" rowspan="${rs}">${v(`<b>${tH(T)}</b>`)}</td><td class="bx" rowspan="${rs}"></td><td class="bx" rowspan="${rs}"></td>`; };
   const legC = (k, rs) => {
-    const l = state.legs[k], c = calcs[k], m = ADJ.mins && ADJ.mins[k] != null ? ADJ.mins[k] : c.min, msa = num(l.msa);
+    const l = state.legs[k], c = calcs[k], m0 = ADJ.mins && ADJ.mins[k] != null ? ADJ.mins[k] : c.min, msa = num(l.msa);
+    /* Leg-Zeit = Differenz der gerundeten Summenzeiten → die Legs ergeben exakt die +Zeit (übliches Navlog-Verfahren) */
+    const m = m0 == null ? null : restMin(k);
     /* Zweitzeile nur als Zahl — die Spaltenköpfe sagen MH/MC, ALT/MSA, NM/GS */
     return `<td class="hd lgc" rowspan="${rs}"><b>${fmtHdg(c.mh)}</b><small>${fmtHdg(c.mc)}</small></td>`+
       `<td class="al lgc" rowspan="${rs}"><b>${f0(A[k])}</b><small>${msa != null ? f0(msa) : ""}</small></td>`+
       `<td class="nm lgc" rowspan="${rs}"><b>${f1(c.dist)}</b><small>${c.gs ? f0(c.gs) : ""}</small></td>`+
-      `<td class="tl lgc" rowspan="${rs}"><b>${m != null ? tH(m) : "–"}</b></td>`;
+      `<td class="tl lgc" rowspan="${rs}"><b>${m != null ? tH(m) : "–"}</b><small>${INC ? "–" : f0(restFuel(k)) + " l"}</small></td>`;   /* Rest-Zeit bis Ziel / Kraftstoff an Bord */
   };
-  const COLS = `<colgroup><col style="width:20%"><col style="width:12.5%"><col style="width:10.5%"><col style="width:10%"><col style="width:9%"><col style="width:7.5%"><col style="width:11.5%"><col style="width:9.5%"><col style="width:9.5%"></colgroup>`;
-  const TH = `<tr class="th"><th>Wegpunkt</th><th>MH<small>MC</small></th><th>ALT<small>MSA</small></th><th>NM<small>GS</small></th><th>Leg</th><th>Fuel</th><th>+Zeit</th><th>ETO</th><th>ATO</th></tr>`;
+  /* keine eigene Fuel-Spalte mehr: Soll-Restmenge steht klein unter der Leg-Zeit; ETO/ATO bekommen die Breite */
+  const COLS = `<colgroup><col style="width:20%"><col style="width:12.5%"><col style="width:10.5%"><col style="width:10%"><col style="width:10%"><col style="width:11.5%"><col style="width:12.75%"><col style="width:12.75%"></colgroup>`;
+  const TH = `<tr class="th"><th>Wegpunkt</th><th>MH<small>MC</small></th><th>ALT<small>MSA</small></th><th>NM<small>GS</small></th><th>Rest<small>Fuel</small></th><th>Leg-<br>Zeit</th><th>ETO</th><th>ATO</th></tr>`;
   /* Wegpunkte a..b (a = Startpunkt des Abschnitts), Legs a..b-1 */
   const navTable = (a, b, withTot) => {
-    let s = `<table class="nav stg">${COLS}${TH}<tr class="hr"><td class="wp" rowspan="2"><b>${wpL(a)}</b></td><td class="lgx" colspan="4"></td>${wpR(a)}</tr>`;
+    /* DEP: Frequenz-Schreibfeld in den Leg-Spalten (gleiche Stelle wie unter DEST);
+       rechts gibt es nichts einzutragen (Zeiten stehen oben bei ATD) → schraffiert */
+    const top = a === 0 ? `<td class="frq" colspan="4"><span>Freq:</span></td>` : `<td class="lgx" colspan="4"></td>`;
+    const depR = `<td class="frq" colspan="3" rowspan="2"><span>ATD:</span></td>`;   /* Abflugzeit direkt beim Abflugplatz */
+    let s = `<table class="nav stg">${COLS}${TH}<tr class="hr"><td class="wp" rowspan="2"><b>${wpL(a)}</b></td>${top}${a === 0 ? depR : wpR(a)}</tr>`;
     for (let k = a; k < b; k++){
       s += `<tr class="hr">${legC(k, 2 + evOn[k].length)}</tr>`;
-      for (const ev of evOn[k]) s += `<tr class="er"><td class="evc">${evTxt(ev)}</td><td class="evx" colspan="4"></td></tr>`;
-      s += `<tr class="hr"><td class="wp" rowspan="2"><b>${wpL(k+1)}</b></td>${wpR(k+1)}</tr>`;
+      const ne = evOn[k].length;
+      /* Kästen des nächsten Wegpunkts beginnen in der ersten Merkpunkt-Zeile dieses Legs */
+      evOn[k].forEach((ev, j) => { s += `<tr class="er"><td class="evc">${evTxt(ev)}</td>${j === 0 ? wpR(k+1, ne) : ""}</tr>`; });
+      s += `<tr class="hr"><td class="wp" rowspan="2"><b>${wpL(k+1)}</b></td>${ne ? "" : wpR(k+1)}</tr>`;
     }
-    s += `<tr class="hr"><td class="lgx" colspan="4"></td></tr>`;
-    if (withTot) s += `<tr class="tot"><td>Gesamt</td><td></td><td></td><td><b>${f1(totDist)}</b></td><td><b>${tH(totMin)}</b></td><td></td><td class="tm"><b>${plus(totMin)}</b></td><td></td><td></td></tr>`;
+    /* unter DEST: Schreibfeld für die Frequenz; am Ende von Blatt 1 (Fortsetzung folgt) bleibt es schraffiert */
+    s += b === N ? `<tr class="hr"><td class="frq" colspan="4"><span>Freq:</span></td></tr>` : `<tr class="hr"><td class="lgx" colspan="4"></td></tr>`;
+    if (withTot) s += `<tr class="tot"><td>Gesamt</td><td></td><td></td><td><b>${f1(totDist)}</b></td><td></td><td class="tm"><b>${tH(RLK.total)}</b></td><td></td><td></td></tr>`;
     return s + `</table>`;
   };
   /* Platzbedarf in mm (normal / kompakt) — links mit Kopf und ATD-Zeile, rechts nur Tabellenkopf */
   const evCount = (a, b) => { let e = 0; for (let k = a; k < b; k++) e += evOn[k].length; return e; };
-  const need = (a, b, sc) => sc * (11.2*(b - a + 1) + 8.4*evCount(a, b));
-  const AV_L = 96, AV_R = 112;
+  const need = (a, b, sc) => sc * (11.2*(b - a + 1) + 5.8*evCount(a, b));   /* Merkpunkt-Zeile 5,8 mm (höchstens zwei kurze Zeilen) */
+  const AV_L = 95.5, AV_R = 112;   /* links: Kopf + ATD/ATA-Block, Tabelle beginnt bei ~21,6 mm */
   let dens = "", split = -1;
   if (need(0, N, 1) > AV_L){
     if (need(0, N, 0.75) <= AV_L) dens = " c";
@@ -3825,15 +3881,19 @@ function buildKneeSheet(){
       }
     }
   }
-  const head = `<div class="hd1"><div><span class="cs">${esc(state.callsign)}</span> <span class="rt">${esc(U(h.dep))} → ${esc(U(h.dest))}</span></div>`+
-    `<div class="dt">${esc(fmtDateDE(h.date))} · ETD ${esc(h.etd || "–")} UTC</div></div>`+
-    `<div class="atd">ATD <span class="box"></span><span class="sp"></span>ATA <span class="box"></span></div>`;
+  /* Kopf einzeilig: Kennzeichen und Strecke links, Datum/ETD klein rechts */
+  const head = `<div class="hd1"><span class="cs">${esc(state.callsign)}</span><span class="rt">${esc(U(h.dep))} → ${esc(U(h.dest))}</span><span class="dt">${esc(fmtDateDE(h.date))} · ETD ${esc(h.etd || "–")} UTC</span></div>`+
+    /* oben nur Notizzeilen — ATD steht in der DEP-Zeile */
+    `<div class="atn topn"><div class="wl"></div><div class="wl"></div></div>`;
   let L = head + (split > 0 ? navTable(0, split, false) : navTable(0, N, true));
   if (INC) L += `<div class="warn">✘ Flugplan unvollständig — ${esc(CORE.issues.join(" · "))}</div>`;
+  /* Notizzeilen unter der Tabelle: großzügig anlegen, kneeFit kürzt beim Drucken auf das, was wirklich passt.
+     Sie stehen ganz am Ende — bei Platzmangel kann nur Notizfläche wegfallen. */
+  if (split < 0) L += `<div class="notes lnotes">${Array.from({length:6}, () => `<div class="nl"></div>`).join("")}</div>`;
 
   /* Flug-Infos */
   const atis = `<div class="atis"><span class="al2">ATIS</span><span><i>Info</i><span class="b s"></span></span><span><i>Piste</i><span class="b s"></span></span><span><i>Wind</i><span class="b m"></span></span><span><i>Sicht</i><span class="b s"></span></span><span><i>QNH</i><span class="b m"></span></span></div>`;
-  const bh = t => `<div class="bh"><span>${t}</span><span class="fq">Freq <span class="b m"></span></span></div>`;
+  const bh = (t, fq = true) => `<div class="bh"><span>${t}</span>${fq ? `<span class="fq">Freq <span class="b m"></span></span>` : ""}</div>`;
   const perfLine = key => {
     const B = ac.perf && ac.perf[key]; if (!B) return "";
     const s = perfEff(key), bad = perfIssues(B, s);
@@ -3846,8 +3906,9 @@ function buildKneeSheet(){
     const rid = (state.perf[key] || {}).rwyId;
     return `<div class="kv">Platz <b>${esc(s.elev || "–")} ft</b> · Piste <b>${rid ? esc(rid) : (rd != null ? String(Math.round(rd/10)).padStart(2,"0") : "__")}</b> · ${lbl} <b>${isFinite(rwy) ? f0(rwy) : "___"} m</b> · Roll <b>${f0(r && r.ready && !r.err ? r.rollF : null)}</b> / 50 ft <b>${f0(need2)} m</b> ${ck ? ckSym(ck) : ""}</div>${xw ? `<div class="warn">⚠ ${esc(xw.txt)}</div>` : ""}`;
   };
-  let R = `<div class="blk">${bh("DEP " + esc(U(h.dep)))}${atis}${perfLine("to")}</div>`;
-  R += `<div class="blk">${bh("DEST " + esc(U(h.dest)))}${atis}${perfLine("ldg")}</div>`;
+  /* Frequenz von DEP/DEST steht links im Navlog — hier nur noch bei ALTN */
+  let R = `<div class="blk">${bh("DEP " + esc(U(h.dep)), false)}${atis}${perfLine("to")}</div>`;
+  R += `<div class="blk">${bh("DEST " + esc(U(h.dest)), false)}${atis}${perfLine("ldg")}</div>`;
   const av = altnEff();
   R += `<div class="blk">${bh("ALTN " + (esc(U(h.altn || state.altn.route)) || "—"))}`+
     `<div class="kv">MH <b>${fmtHdg(ca.mh)}</b> · <b>${f1(ca.dist)} NM</b> · <b>${tH(ca.min)}</b> · ALT ${esc(f0(num(av.alt)))} ft · <b>${FC && !INC ? f1(FC.altnL) + " l" : "–"}</b></div></div>`;
@@ -3855,10 +3916,8 @@ function buildKneeSheet(){
   if (!FC) fu += `<div class="kv">keine Verbrauchsdaten</div>`;
   else if (INC) fu += `<div class="warn">✘ Bedarf nicht ermittelt — Flugplan unvollständig</div>`;
   else {
+    /* nur die Übersicht — die Soll-Werte stehen links an jedem Wegpunkt */
     fu += `<div class="kv">Vorrat <b>${f1(F0)} l</b> · Mindest <b>${f1(FC.mfr)} l</b> · Extra <b>${f1(FC.extra)} l</b> · Reserve <b>${f1(FC.frfL)} l</b></div>`;
-    const marks = [0]; for (let T = 30; T < totMin - 5; T += 30) marks.push(T); marks.push(totMin);
-    fu += `<table class="fc"><tr><th></th><th>Uhrzeit</th><th>Anzeige</th><th>Soll</th></tr>` +
-      marks.map((T,k) => `<tr><td>${k === 0 ? "Abheben" : k === marks.length-1 ? "Landung" : plus(T)}</td><td></td><td></td><td><b>${f0(soll(T))} l</b></td></tr>`).join("") + `</table>`;
   }
   R += fu + `</div>`;
   const bad = (W.checks || []).filter(c => !c.ok && !c.info);
@@ -3867,12 +3926,11 @@ function buildKneeSheet(){
   R += `<div class="sq">Squawk <span class="b m"></span><span class="emg">7700 · 7600 · 7500 · 121,5</span></div>`;
   R += `<div class="ft">${esc(state.callsign)} · ${esc(ac.type)} — FCY FlightLog ${BUILD}</div>`;
   /* Mitschreibzeilen oben: so viele, wie unter der Infospalte frei bleibt (Schätzung in mm, eher knapp) */
-  const fuelRows = (FC && !INC) ? (() => { let n = 2; for (let T = 30; T < totMin - 5; T += 30) n++; return n; })() : 0;
-  let usedR = 23 + 23 + 13 + (FC && !INC ? 17 + 5.2*fuelRows : 10) + 12 + 4.2*bad.length + 7 + 3;   /* am Druckbild kalibriert */
+  let usedR = 23 + 23 + 13 + 10 + 12 + 4.2*bad.length + 7 + 3;   /* Schätzung; beim Drucken misst kneeFit nach */
   let rTight = "";
-  if (usedR > 131){ rTight = " rtight"; usedR -= 2*1.4 + fuelRows*1.0 + 2; }       /* knapp: ATIS-Kästen und Kraftstofftabelle flacher */
+  if (usedR > 131){ rTight = " rtight"; usedR -= 2*1.4 + 2; }       /* knapp: ATIS-Kästen flacher */
   const lineCount = n => n > 0 ? `<div class="notes">${Array.from({length:n}, () => `<div class="nl"></div>`).join("")}</div>` : "";
-  const nLines = Math.max(0, Math.min(4, Math.floor((134 - usedR) / 6.8)));
+  const nLines = Math.max(0, Math.min(6, Math.floor((134 - usedR) / 6.8)));
   R = lineCount(nLines) + R;
 
   const css = `<style>
@@ -3882,16 +3940,26 @@ function buildKneeSheet(){
   .k2 .fold{width:12mm;position:relative}
   .k2 .fold:after{content:"";position:absolute;left:6mm;top:0;bottom:0;border-left:.3mm dashed #999}
   .k2-p2{break-before:page;page-break-before:always}
-  .k2 .hd1{display:flex;justify-content:space-between;align-items:baseline;border-bottom:.5mm solid #000;padding-bottom:1mm}
-  .k2 .cs{font-size:13pt;font-weight:700}.k2 .rt{font-size:11pt;font-weight:700}.k2 .dt{font-size:7.5pt}
+  .k2 .hd1{display:flex;gap:3mm;align-items:baseline;border-bottom:.4mm solid #000;padding-bottom:.8mm}
+  .k2 .cs{font-size:10pt;font-weight:700}.k2 .rt{font-size:10pt;font-weight:700}.k2 .hd1 .dt{margin-left:auto;font-size:8pt;white-space:nowrap}
   .k2 .atd{display:flex;align-items:center;gap:1.5mm;font-size:9pt;font-weight:700;margin:1.6mm 0}
-  .k2 .atd .sp{flex:1}
+  .k2 .atd2{display:flex;gap:4mm;margin:1.2mm 0 1.4mm}
+  .k2 .atc{display:flex;flex-direction:column;gap:1.2mm}.k2 .ar .box{height:5.8mm}
+  .k2 .ar{display:flex;align-items:center;gap:1.5mm;font-size:9pt;font-weight:700}.k2 .ar .al{width:8mm}
+  .k2 .atn{flex:1;display:flex;flex-direction:column;gap:1.2mm}.k2 .atn.topn{margin:1.2mm 0 2.6mm}
+  .k2 .atn .wl{height:5.8mm;border-bottom:.3mm solid #000;box-sizing:border-box}
+  .k2 .lnotes{margin-top:2mm}
   .k2 .box{display:inline-block;width:15mm;height:6.5mm;border:.4mm solid #000}
   .k2 table{border-collapse:collapse;width:100%;table-layout:fixed}
   .k2 .nav td,.k2 .nav th{border:.25mm solid #000;text-align:center;vertical-align:middle;padding:0 .4mm}
   .k2 .nav th{background:#e6e6e6;font-size:7pt;height:6.5mm;line-height:1.05}
   .k2 .nav th small,.k2 .nav td small{display:block;font-size:6.6pt;font-weight:400;white-space:nowrap}
-  .k2 .stg tr.hr{height:5.6mm}.k2 .stg tr.er{height:8.4mm}
+  .k2 .stg tr.hr{height:5.6mm}.k2 .stg tr.er{height:5.8mm}
+  /* leere Leg-Felder neben DEP und unter DEST: leicht schraffiert = hier nichts eintragen (Bildmuster, damit auch html2canvas es zeichnet) */
+  .k2 .stg td.lgx,.k2 .stg td.hx{background-color:#fff;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAfklEQVR42rXPQQ7AIAgF0dHjcqB/Xbtqk6ZqRYEVqzeApCapkTCSWgUws5KBA5Ssy++9ZuJmVmomHvpBDw8LjPCQwAw/DvzhR4EVfDuwim8FPLg74MVdgR18ObCLLwVO8N/AKT4NRODDQBTeDUTin0A0/gpk4E8gCweomTjABcA7YzIan45/AAAAAElFTkSuQmCC);background-size:2.4mm 2.4mm;background-repeat:repeat}
+  .k2 .stg td.frq,#printSheet .k2 .stg td.frq{vertical-align:top;text-align:left;padding:.3mm .8mm}.k2 .stg td.frq span{font-size:6.5pt;color:#444}
+  .k2 .stg td.extu,#printSheet .k2 .stg td.extu{vertical-align:bottom;padding-top:0;padding-bottom:0}.k2 .stg td.extu .wv{height:11.2mm;display:flex;align-items:center;justify-content:center}.k2.c .stg td.extu .wv{height:8.4mm}
+  .k2 .stg td.ext,#printSheet .k2 .stg td.ext{vertical-align:top;padding-top:0;padding-bottom:0}   /* #printSheet-Regel (vertical-align:middle) überstimmen */.k2 .stg td.ext .wv{height:11.2mm;display:flex;align-items:center;justify-content:center}
   .k2 .stg td.wp{text-align:left;font-size:9.5pt;line-height:1.05;padding-left:1mm}
   .k2 .stg td.wp .lng{font-size:7.8pt;overflow-wrap:anywhere}
   .k2 .stg td.lgc{background:#fafafa;font-size:10pt}
@@ -3899,11 +3967,11 @@ function buildKneeSheet(){
   .k2 .stg td.tl b{font-size:9.5pt}
   .k2 .stg td.fu{font-weight:700;font-size:10pt}
   .k2 .stg td.tm b{font-size:10.5pt}
-  .k2 .stg td.lgx{border-top:0;border-bottom:0;background:#fff}
-  .k2 .stg td.evc{font-size:6.2pt;line-height:1.1;text-align:left;background:#eee;padding-left:.8mm;overflow:hidden}
+  .k2 .stg td.lgx{border-top:0;border-bottom:0}
+  .k2 .stg td.evc{font-size:6.2pt;line-height:1.05;text-align:left;background:#eee;padding:0 .4mm 0 .8mm;overflow:hidden}
   .k2 .stg td.evx{background:#eee}
   .k2 .tot td{height:7mm;font-size:9pt;font-weight:700;background:#e6e6e6}
-  .k2.c .stg tr.hr{height:4.2mm}.k2.c .stg tr.er{height:6.2mm}
+  .k2.c .stg tr.hr{height:4.2mm}.k2.c .stg tr.er{height:4.4mm}.k2.c .stg td.ext .wv{height:8.4mm}
   .k2.c .stg td.hd b{font-size:11pt}.k2.c .stg td.lgc,.k2.c .stg td.fu{font-size:8.5pt}
   .k2.c .stg td.wp{font-size:8.5pt}.k2.c .stg td.tm b,.k2.c .stg td.tl b{font-size:9pt}
   .k2.c .nav th small,.k2.c .nav td small{font-size:5.6pt}
@@ -3971,20 +4039,20 @@ function buildPrintSheet(){
   out += `<table class="ps-sec"><colgroup><col style="width:10%"><col style="width:4.6%"><col style="width:4.6%"><col style="width:4.4%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:4.4%"><col style="width:4%"><col style="width:4.2%"><col style="width:4%"><col style="width:4.6%"><col style="width:4.6%"><col style="width:4.2%"><col style="width:4.8%"><col style="width:4.8%"><col style="width:5.4%"><col style="width:5.4%"><col></colgroup><thead>
     <tr><th class="ps-th" rowspan="2">Route</th><th class="ps-th" rowspan="2">ALT<br>ft</th><th class="ps-th" rowspan="2">MSA<br>ft</th><th class="ps-th" rowspan="2">TAS<br>kt</th><th class="ps-th" colspan="2">WIND</th><th class="ps-th" rowspan="2">TC<br>°</th><th class="ps-th" rowspan="2">VAR<br>W+/E−</th><th class="ps-th" rowspan="2">MC<br>°</th><th class="ps-th" rowspan="2">WCA<br>R+/L−</th><th class="ps-th" rowspan="2">MH<br>°</th><th class="ps-th" colspan="2">Distanz NM</th><th class="ps-th" rowspan="2">GS<br>kt</th><th class="ps-th" colspan="2">Zeit</th><th class="ps-th" rowspan="2">ETO</th><th class="ps-th" rowspan="2">ATO</th><th class="ps-th" rowspan="2">Route / Freq.</th></tr>
     <tr><th class="ps-th">WD</th><th class="ps-th">WS</th><th class="ps-th">Leg</th><th class="ps-th">Rest</th><th class="ps-th">Leg</th><th class="ps-th">Rest</th></tr></thead><tbody>`;
-  let remDist = totDist, remMin = totMin;
+  let remDist = totDist;
+  const RLp = roundedLegMins(ADJp.mins);
   const legCells = i => {
     if (i >= state.legs.length)
       return `<td rowspan="2"></td>`.repeat(15);
     const l = state.legs[i], c = calcs[i];
     const am = ADJp.mins[i];
-    const rD = c.dist!=null ? fmt0(remDist) : "", rM = am!=null ? fmtT(remMin) : "";
+    const rD = c.dist!=null ? fmt0(remDist) : "", rM = am!=null ? fmtT(RLp.total - RLp.before[i]) : "";
     if (c.dist!=null) remDist -= c.dist;
-    if (am!=null) remMin -= am;
     return `<td rowspan="2">${esc(l.alt)}</td><td rowspan="2">${esc(l.msa)}</td><td rowspan="2">${esc(l.tas)}</td>`+
       `<td rowspan="2">${esc(l.wd)}</td><td rowspan="2">${esc(l.ws)}</td><td rowspan="2">${esc(l.tc)}</td><td rowspan="2">${esc(l.var)}</td>`+
       `<td rowspan="2">${c.mc!=null?fmtHdg(c.mc):""}</td><td rowspan="2">${wca1(c.wca)}</td><td rowspan="2">${c.mh!=null?fmtHdg(c.mh):""}</td>`+
       `<td rowspan="2">${esc(l.dist)}</td><td rowspan="2">${rD}</td><td rowspan="2">${c.gs!=null?fmt0(c.gs):""}</td>`+
-      `<td rowspan="2">${am!=null?fmtT(am):""}</td><td rowspan="2">${rM}</td>`;
+      `<td rowspan="2">${am!=null?fmtT(RLp.leg[i]):""}</td><td rowspan="2">${rM}</td>`;
   };
 
   for (let r = 0; r <= 2*N+1; r++){

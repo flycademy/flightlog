@@ -1,6 +1,6 @@
 # FlyCademy Flight Log — Web-App
 
-Stand: Build 2026-09-29h
+Stand: Build 2026-09-30f
 
 ## Einmalig einrichten (GitHub Pages)
 
