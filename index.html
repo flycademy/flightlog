@@ -1833,7 +1833,7 @@ const AIRCRAFT = {
 
 const LS_KEY = "fcy-flightlog-draft-v2";
 const $ = id => document.getElementById(id);
-const BUILD = "2026-09-30i";
+const BUILD = "2026-09-30p";
 /* Open-Meteo: mit Schlüssel (kommerzielle Lizenz) laufen alle Abrufe über die customer-Server */
 const OM_KEY_LS = "fcy-om-key";
 function omKey(){ try{ return (localStorage.getItem(OM_KEY_LS) || "").trim(); }catch(e){ return ""; } }
@@ -1996,7 +1996,7 @@ function tocTod(ac, totMin, totDist, calcs, altnMin){
     const p = dm[dm.length-1];
     if (p && d.at <= p.at + p.nm + 0.05){
       const ref = d.at + (d.gap ?? d.nm);
-      dm[dm.length-1] = Object.assign({}, d, {at: p.at, nm: (d.at + d.nm) - p.at, gap: ref - p.at, min: (p.min || 0) + (d.min || 0), merged:true});
+      dm[dm.length-1] = Object.assign({}, d, {at: p.at, nm: (d.at + d.nm) - p.at, gap: ref - p.at, min: (p.min || 0) + (d.min || 0), merged:true, final: !!(d.final || p.final)});
     } else dm.push(d);
   }
   out.events.push(...cm, ...dm);
@@ -2424,7 +2424,10 @@ function render(){
       const bad = ISS.length ? `<div class="nw-bad"><b>✘ Flugplan unvollständig — Flugzeit und Kraftstoffbedarf nicht verwendbar:</b><ul>${ISS.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>` : "";
       const ms = state.legs.map((l,i) => l.msaStale ? legLabel(i) : null).filter(Boolean).concat(state.altn && state.altn.msaStale ? ["Alternate"] : []);
       const msw = ms.length ? `<div class="nw-warn">⚠ <b>MSA fehlt nach Routenänderung:</b> ${esc(ms.join(", "))} — „Alles berechnen“ oder aus der ICAO-Karte eintragen</div>` : "";
-      nw.innerHTML = note + msw + bad; nw.hidden = !(note || msw || bad);
+      /* Höhenprofil passt nicht in die Strecke (kurze Legs, TOC hinter TOD …) — gehört deutlich sichtbar vor den Druck */
+      const TW = (typeof TT !== "undefined" && TT && TT.warns) ? TT.warns : [];
+      const pw = TW.length ? `<div class="nw-warn">⚠ <b>Höhenprofil prüfen:</b> ${TW.map(esc).join(" · ")}</div>` : "";
+      nw.innerHTML = note + pw + msw + bad; nw.hidden = !(note || pw || msw || bad);
     } }
   etaSync(totMinAdj || totMin, ISS);
   renderFuel(ac, totMinAdj || totMin, ca.min, ISS);
@@ -2456,6 +2459,12 @@ function acLimits(ac){
 /* Massengrenzen sind aus lbs umgerechnet und auf 0,1 kg gerundet gespeichert (3100 lbs = 1406,136 kg → 1406,1):
    Beladung genau an der Grenze darf nicht rot werden — Toleranz = halbe Anzeigestelle */
 const MASS_EPS = 0.05;
+/* CG-Anzeige: ganze mm; liegt der gerundete Wert genau auf einer Grenze, eine Nachkommastelle
+   (sonst liest sich „2400 mm außerhalb 2400–2590 mm“ widersprüchlich) */
+function cgTxt(arm, c){
+  const r = Math.round(arm);
+  return (r === Math.round(c.fwd) || r === Math.round(c.aft)) ? (Math.round(arm*10)/10).toFixed(1) : String(r);
+}
 function cgOk(lim, mass, arm){
   const fwd = limAt(lim.fwd, mass);
   return {fwd, aft:lim.aft, ok: arm >= fwd && arm <= lim.aft};
@@ -2647,19 +2656,19 @@ function calcWB(ac){
       const okT = tom <= lim.mtow + MASS_EPS;
       checks.push({ok: okT, txt:`Startmasse ${tom.toFixed(1)} kg ${okT?"≤":">"} MTOW ${lim.mtow} kg`});
       if (tomArm != null){ const c = cgOk(lim, tom, tomArm);
-        checks.push({ok:c.ok, txt:`CG Start ${Math.round(tomArm)} mm ${c.ok?"innerhalb":"außerhalb"} ${Math.round(c.fwd)}–${Math.round(c.aft)} mm`}); }
+        checks.push({ok:c.ok, txt:`CG Start ${cgTxt(tomArm, c)} mm ${c.ok?"innerhalb":"außerhalb"} ${Math.round(c.fwd)}–${Math.round(c.aft)} mm`}); }
     }
     if (ldm != null){
       const okL = ldm <= lim.mlw + MASS_EPS;
       checks.push({ok: okL, txt:`Landemasse ${ldm.toFixed(1)} kg ${okL?"≤":">"} MLW ${lim.mlw} kg`});
       if (ldmArm != null){ const c = cgOk(lim, ldm, ldmArm);
-        checks.push({ok:c.ok, txt:`CG Landung ${Math.round(ldmArm)} mm ${c.ok?"innerhalb":"außerhalb"} ${Math.round(c.fwd)}–${Math.round(c.aft)} mm`}); }
+        checks.push({ok:c.ok, txt:`CG Landung ${cgTxt(ldmArm, c)} mm ${c.ok?"innerhalb":"außerhalb"} ${Math.round(c.fwd)}–${Math.round(c.aft)} mm`}); }
     }
     if (zfmM > 0){
       /* leergeflogener Tank (FHB/AFM Kap. 6): Schwerpunkt muss auch ohne ausfliegbaren Kraftstoff im Bereich liegen */
       const zArm = zfmMom / zfmM, c = cgOk(lim, zfmM, zArm);
       const hint = (!c.ok && zArm < c.fwd && ac.ballast && !state.wb.ballast) ? ` — ${ac.ballast.label} zuladen?` : "";
-      checks.push({ok:c.ok, txt:`CG ohne Kraftstoff (ZFM ${zfmM.toFixed(1)} kg) ${Math.round(zArm)} mm ${c.ok?"innerhalb":"außerhalb"} ${Math.round(c.fwd)}–${Math.round(c.aft)} mm${hint}`});
+      checks.push({ok:c.ok, txt:`CG ohne Kraftstoff (ZFM ${zfmM.toFixed(1)} kg) ${cgTxt(zArm, c)} mm ${c.ok?"innerhalb":"außerhalb"} ${Math.round(c.fwd)}–${Math.round(c.aft)} mm${hint}`});
     }
     if (fRamp != null && lim.maxFuel != null){
       const fl = Math.round(fRamp*10)/10;             /* getankte Menge (vor dem Rollen) gegen ausfliegbaren Tankinhalt */
@@ -2836,6 +2845,10 @@ function init(){
       }
       state.head[id]=e.target.value; saveState();
       if (["dep","dest","altn","etd"].includes(id)) render();
+      /* neuer Platz → Karte auf die Route einpassen (nicht bei Wegpunkt-Änderungen) */
+      if (["dep","dest","altn"].includes(id) && /^[A-Za-z]{4}$/.test(e.target.value.trim()) && MAP){
+        clearTimeout(mapShow._t); mapShow._t = setTimeout(() => { try{ mapShow(); }catch(err){} }, 400);
+      }
       if (id === "eta" && state.head.etaDflt) render();          /* geleert → sofort wieder berechnen */
       if ((id === "etd" || id === "date") && state.wx && (state.wx.metars || state.wx.model)){
         clearTimeout(perfAutoAll._t); perfAutoAll._t = setTimeout(perfAutoAll, 1200);   /* andere Zeit → METAR oder Vorhersage neu übernehmen */
@@ -3834,21 +3847,29 @@ function buildKneeSheet(){
     let k = cumD.findIndex(d => ev.at <= d + 1e-6); if (k < 0) k = N - 1;
     evOn[k].push(ev);
   });
+  /* Merkpunkte einzeilig, nur Entfernung (Steigflug: ab Beginn des Steigflugs, Sinkflug: bis zum Wegpunkt darunter) */
   const evTxt = ev => {
-    if (ev.initial) return `<b>▲ TOC ${f1(ev.nm)} NM</b>`;   /* Steigflüge: nur die Entfernung ab Beginn des Steigflugs, ohne Bezugstext */
-    if (ev.final) return `<b>▼ TOD ${f1(ev.gap ?? ev.nm)} NM</b><br>vor ${esc(U(h.dest))}`;
-    if (ev.t === "TOC") return `<b>▲ ${f0(ev.to)} ft</b><br>${f1(ev.nm)} NM`;
-    return `<b>▼ ${f0(ev.to)} ft</b><br>${f1(ev.gap ?? ev.nm)} NM vor ${esc(wpLabel(ev.leg))}`;
+    if (ev.initial) return `<b>▲ TOC ${f1(ev.nm)} NM</b>`;
+    if (ev.final) return `<b>▼ TOD ${f1(ev.gap ?? ev.nm)} NM</b>`;
+    if (ev.t === "TOC") return `<b>▲ ${f0(ev.to)} ft</b> ${f1(ev.nm)} NM`;
+    return `<b>▼ ${f0(ev.to)} ft</b> ${f1(ev.gap ?? ev.nm)} NM`;
   };
+
   const wpL = k => { const s = k === 0 ? U(h.dep) : wpLabel(k-1);
     return s.length > 8 ? `<span class="lng">${esc(s)}</span>` : esc(s); };
   /* TOC/TOD-Zeilen haben rechts keine eigenen Kästen: Fuel/+Zeit/ETO/ATO des Wegpunkts davor laufen durch,
      der Wert bleibt auf Höhe des Wegpunktnamens (.wv = Höhe zweier Halbzeilen) */
   /* Kästen eines Wegpunkts (+Zeit = Leg-Zeit des ANKOMMENDEN Legs, ETO, ATO). Liegen auf diesem Leg TOC/TOD-Zeilen,
      reicht der Kasten nach OBEN durch sie hindurch und endet am Wegpunkt; der Wert steht auf Höhe des Namens. */
-  const wpR = (k, up = 0) => { const T = k === 0 ? 0 : RLK.leg[k-1], rs = 2 + up;
-    const ex = up ? " extu" : "", v = x => up ? `<div class="wv">${x}</div>` : x;
-    return `<td class="tm${ex}" rowspan="${rs}">${v(`<b>${tH(T)}</b>`)}</td><td class="bx" rowspan="${rs}"></td><td class="bx" rowspan="${rs}"></td>`; };
+  const EVH = sc => sc < 1 ? 2.9 : 3.4, HR = sc => 5.6*sc, BCMIN = sc => 0.2;   /* einzeilige Merkpunkt-Zeile */
+  const nClimb = k => (evOn[k] || []).filter(e => e.t === "TOC").length, nDesc = k => (evOn[k] || []).filter(e => e.t !== "TOC").length;
+  const halfH = (n, sc) => n ? Math.max(BCMIN(sc), HR(sc) - n*EVH(sc)) : HR(sc);   /* Halbzeile abzüglich Merkpunkt-Zeilen */
+  /* Rechte Kästen eines Wegpunkts (Leg-Zeit, ETO, ATO): immer so hoch wie zwei Halbzeilen. rs = überspannte Zeilen,
+     mt = Versatz bis zur Namenszelle (Sinkflug-Zeilen darüber), wvH = Höhe der Namenszelle → Wert auf Namenshöhe */
+  const wpR = (k, rs, mt, wvH) => { const T = k === 0 ? 0 : RLK.leg[k-1];
+    /* 0,5 mm Luft: exakt gleiche Höhe + Rahmenlinien würde die Zeile dehnen (Mitte verschiebt sich nur 0,25 mm) */
+    const v = x => `<div class="wv" style="margin-top:${mt.toFixed(2)}mm;height:${Math.max(2, wvH - 0.5).toFixed(2)}mm">${x}</div>`;
+    return `<td class="tm wvc" rowspan="${rs}">${v(`<b>${tH(T)}</b>`)}</td><td class="bx" rowspan="${rs}"></td><td class="bx" rowspan="${rs}"></td>`; };
   const legC = (k, rs) => {
     const l = state.legs[k], c = calcs[k], m0 = ADJ.mins && ADJ.mins[k] != null ? ADJ.mins[k] : c.min, msa = num(l.msa);
     /* Leg-Zeit = Differenz der gerundeten Summenzeiten → die Legs ergeben exakt die +Zeit (übliches Navlog-Verfahren) */
@@ -3867,14 +3888,25 @@ function buildKneeSheet(){
     /* DEP: Frequenz-Schreibfeld in den Leg-Spalten (gleiche Stelle wie unter DEST);
        rechts gibt es nichts einzutragen (Zeiten stehen oben bei ATD) → schraffiert */
     const top = a === 0 ? `<td class="frq" colspan="4"><span>Freq:</span></td>` : `<td class="lgx" colspan="4"></td>`;
-    const depR = `<td class="frq" colspan="3" rowspan="2"><span>ATD:</span></td>`;   /* Abflugzeit direkt beim Abflugplatz */
-    let s = `<table class="nav stg">${COLS}${TH}<tr class="hr"><td class="wp" rowspan="2"><b>${wpL(a)}</b></td>${top}${a === 0 ? depR : wpR(a)}</tr>`;
+    /* Links wird nur die Wegpunkt-Zelle VOR einem Steigflug (TOC) und NACH einem Sinkflug (TOD) flacher:
+       Steig-Merkpunkte nehmen ihren Platz aus der unteren Halbzeile des Wegpunkts davor, Sink-Merkpunkte aus der
+       oberen Halbzeile des Wegpunkts danach. Mitte (Legs) und rechts (Kästen) bleiben überall gleich hoch. */
+    const sc = dens.includes("c") ? 0.75 : 1, H = HR(sc), E = EVH(sc);
+    const inT = k => k >= a && k < b;
+    const bH = k => inT(k) ? halfH(nClimb(k), sc) : H;      /* untere Halbzeile von Wegpunkt k (Beginn Leg k) */
+    const cH = k => inT(k) ? halfH(nDesc(k), sc) : H;       /* obere Halbzeile von Wegpunkt k+1 (Ende Leg k) */
+    const hst = h => Math.abs(h - H) > 0.01 ? ` style="height:${h.toFixed(2)}mm"` : "";
+    const rsW = (k, first) => (first ? 0 : nDesc(k-1)) + 2 + (inT(k) ? nClimb(k) : 0);    /* überspannte Zeilen der rechten Kästen */
+    const depR = `<td class="frq" colspan="3" rowspan="${rsW(a, true)}"><span>ATD:</span></td>`;   /* Abflugzeit direkt beim Abflugplatz */
+    let s = `<table class="nav stg">${COLS}${TH}<tr class="hr"><td class="wp" rowspan="2"><b>${wpL(a)}</b></td>${top}${a === 0 ? depR : wpR(a, rsW(a, true), 0, H + bH(a))}</tr>`;
     for (let k = a; k < b; k++){
-      s += `<tr class="hr">${legC(k, 2 + evOn[k].length)}</tr>`;
-      const ne = evOn[k].length;
-      /* Kästen des nächsten Wegpunkts beginnen in der ersten Merkpunkt-Zeile dieses Legs */
-      evOn[k].forEach((ev, j) => { s += `<tr class="er"><td class="evc">${evTxt(ev)}</td>${j === 0 ? wpR(k+1, ne) : ""}</tr>`; });
-      s += `<tr class="hr"><td class="wp" rowspan="2"><b>${wpL(k+1)}</b></td>${ne ? "" : wpR(k+1)}</tr>`;
+      const cl = evOn[k].filter(e => e.t === "TOC"), de = evOn[k].filter(e => e.t !== "TOC");
+      s += `<tr class="hr"${hst(bH(k))}>${legC(k, 2 + cl.length + de.length)}</tr>`;
+      cl.forEach(ev => { s += `<tr class="er"><td class="evc">${evTxt(ev)}</td></tr>`; });
+      /* rechte Kästen des nächsten Wegpunkts beginnen in der ersten Sinkflug-Zeile (sonst in seiner eigenen Zeile) */
+      const nextH = (k + 1 < b) ? bH(k + 1) : H, R = wpR(k+1, rsW(k+1, false), de.length * E, cH(k) + nextH);
+      de.forEach((ev, j) => { s += `<tr class="er"><td class="evc">${evTxt(ev)}</td>${j === 0 ? R : ""}</tr>`; });
+      s += `<tr class="hr"${hst(cH(k))}><td class="wp" rowspan="2"><b>${wpL(k+1)}</b></td>${de.length ? "" : R}</tr>`;
     }
     /* unter DEST: Schreibfeld für die Frequenz; am Ende von Blatt 1 (Fortsetzung folgt) bleibt es schraffiert */
     s += b === N ? `<tr class="hr"><td class="frq" colspan="4"><span>Freq:</span></td></tr>` : `<tr class="hr"><td class="lgx" colspan="4"></td></tr>`;
@@ -3883,7 +3915,10 @@ function buildKneeSheet(){
   };
   /* Platzbedarf in mm (normal / kompakt) — links mit Kopf und ATD-Zeile, rechts nur Tabellenkopf */
   const evCount = (a, b) => { let e = 0; for (let k = a; k < b; k++) e += evOn[k].length; return e; };
-  const need = (a, b, sc) => sc * (11.2*(b - a + 1) + 5.8*evCount(a, b));   /* Merkpunkt-Zeile 5,8 mm (höchstens zwei kurze Zeilen) */
+  /* Jedes Leg ist gleich hoch (2 Halbzeilen); Merkpunkt-Zeilen nehmen sich ihren Platz aus den angrenzenden
+     Halbzeilen (Wegpunkt-Zellen werden flacher). Nur wenn das nicht reicht (≥ 3 Merkpunkte), wächst das Leg. */
+  const legExtra = (k, sc) => { const x = n => n ? Math.max(0, n*EVH(sc) + halfH(n, sc) - HR(sc)) : 0; return x(nClimb(k)) + x(nDesc(k)); };
+  const need = (a, b, sc) => { let s = 11.2*sc*(b - a + 1); for (let k = a; k < b; k++) s += legExtra(k, sc); return s; };
   const AV_L = 95.5, AV_R = 112;   /* links: Kopf + ATD/ATA-Block, Tabelle beginnt bei ~21,6 mm */
   let dens = "", split = -1;
   if (need(0, N, 1) > AV_L){
@@ -3903,6 +3938,7 @@ function buildKneeSheet(){
     `<div class="atn topn"><div class="wl"></div><div class="wl"></div></div>`;
   let L = head + (split > 0 ? navTable(0, split, false) : navTable(0, N, true));
   if (INC) L += `<div class="warn">✘ Flugplan unvollständig — ${esc(CORE.issues.join(" · "))}</div>`;
+  if (TT && TT.warns && TT.warns.length) L += `<div class="warn">⚠ Höhenprofil: ${esc(TT.warns.join(" · "))}</div>`;
   /* Notizzeilen unter der Tabelle: großzügig anlegen, kneeFit kürzt beim Drucken auf das, was wirklich passt.
      Sie stehen ganz am Ende — bei Platzmangel kann nur Notizfläche wegfallen. */
   if (split < 0) L += `<div class="notes lnotes">${Array.from({length:6}, () => `<div class="nl"></div>`).join("")}</div>`;
@@ -3970,11 +4006,12 @@ function buildKneeSheet(){
   .k2 .nav td,.k2 .nav th{border:.25mm solid #000;text-align:center;vertical-align:middle;padding:0 .4mm}
   .k2 .nav th{background:#e6e6e6;font-size:7pt;height:6.5mm;line-height:1.05}
   .k2 .nav th small,.k2 .nav td small{display:block;font-size:6.6pt;font-weight:400;white-space:nowrap}
-  .k2 .stg tr.hr{height:5.6mm}.k2 .stg tr.er{height:5.8mm}
+  .k2 .stg tr.hr{height:5.6mm}.k2 .stg tr.er{height:3.4mm}
   /* leere Leg-Felder neben DEP und unter DEST: leicht schraffiert = hier nichts eintragen (Bildmuster, damit auch html2canvas es zeichnet) */
   .k2 .stg td.lgx,.k2 .stg td.hx{background-color:#fff;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAfklEQVR42rXPQQ7AIAgF0dHjcqB/Xbtqk6ZqRYEVqzeApCapkTCSWgUws5KBA5Ssy++9ZuJmVmomHvpBDw8LjPCQwAw/DvzhR4EVfDuwim8FPLg74MVdgR18ObCLLwVO8N/AKT4NRODDQBTeDUTin0A0/gpk4E8gCweomTjABcA7YzIan45/AAAAAElFTkSuQmCC);background-size:2.4mm 2.4mm;background-repeat:repeat}
-  .k2 .stg td.frq,#printSheet .k2 .stg td.frq{vertical-align:top;text-align:left;padding:.3mm .8mm}.k2 .stg td.frq span{font-size:6.5pt;color:#444}
-  .k2 .stg td.extu,#printSheet .k2 .stg td.extu{vertical-align:bottom;padding-top:0;padding-bottom:0}.k2 .stg td.extu .wv{height:11.2mm;display:flex;align-items:center;justify-content:center}.k2.c .stg td.extu .wv{height:8.4mm}
+  .k2 .stg td.frq,#printSheet .k2 .stg td.frq{vertical-align:top;text-align:left;padding:.3mm .8mm;line-height:1;font-size:6.5pt}.k2 .stg td.frq span{font-size:6.5pt;color:#444}
+  .k2.c .stg td.frq,#printSheet .k2.c .stg td.frq{padding:.1mm .8mm}.k2.c .stg td.frq span{font-size:5.5pt}
+  .k2 .stg td.wvc,#printSheet .k2 .stg td.wvc{vertical-align:top;padding-top:0;padding-bottom:0}.k2 .stg td.wvc .wv{display:flex;align-items:center;justify-content:center}
   .k2 .stg td.ext,#printSheet .k2 .stg td.ext{vertical-align:top;padding-top:0;padding-bottom:0}   /* #printSheet-Regel (vertical-align:middle) überstimmen */.k2 .stg td.ext .wv{height:11.2mm;display:flex;align-items:center;justify-content:center}
   .k2 .stg td.wp{text-align:left;font-size:9.5pt;line-height:1.05;padding-left:1mm}
   .k2 .stg td.wp .lng{font-size:7.8pt;overflow-wrap:anywhere}
@@ -3984,10 +4021,10 @@ function buildKneeSheet(){
   .k2 .stg td.fu{font-weight:700;font-size:10pt}
   .k2 .stg td.tm b{font-size:10.5pt}
   .k2 .stg td.lgx{border-top:0;border-bottom:0}
-  .k2 .stg td.evc{font-size:6.2pt;line-height:1.05;text-align:left;background:#eee;padding:0 .4mm 0 .8mm;overflow:hidden}
+  .k2 .stg td.evc,#printSheet .k2 .stg td.evc{font-size:6.3pt;line-height:1;text-align:left;background:#fff;padding:0 .4mm 0 .8mm;overflow:hidden;white-space:nowrap}.k2.c .stg td.evc{font-size:5.5pt}
   .k2 .stg td.evx{background:#eee}
   .k2 .tot td{height:7mm;font-size:9pt;font-weight:700;background:#e6e6e6}
-  .k2.c .stg tr.hr{height:4.2mm}.k2.c .stg tr.er{height:4.4mm}.k2.c .stg td.ext .wv{height:8.4mm}
+  .k2.c .stg tr.hr{height:4.2mm}.k2.c .stg tr.er{height:2.9mm}.k2.c .stg td.ext .wv{height:8.4mm}
   .k2.c .stg td.hd b{font-size:11pt}.k2.c .stg td.lgc,.k2.c .stg td.fu{font-size:8.5pt}
   .k2.c .stg td.wp{font-size:8.5pt}.k2.c .stg td.tm b,.k2.c .stg td.tl b{font-size:9pt}
   .k2.c .nav th small,.k2.c .nav td small{font-size:5.6pt}
@@ -4345,7 +4382,9 @@ document.addEventListener("focusin", e => {
   const t = e.target;
   if (PF_RESTORE || !t || !t.matches || !t.matches(SEL_ALL)) return;
   t._selAll = true;
-  setTimeout(() => { try{ t.select(); t.setSelectionRange(0, t.value.length); }catch(err){} }, 0);
+  const v0 = t.value;
+  /* nur markieren, solange noch nichts getippt wurde — sonst würde ein schnell getippter erster Buchstabe mitmarkiert und überschrieben */
+  setTimeout(() => { if (t.value !== v0) return; try{ t.select(); t.setSelectionRange(0, t.value.length); }catch(err){} }, 0);
 });
 /* Maus: das Loslassen würde die Markierung sofort wieder aufheben */
 document.addEventListener("mouseup", e => { const t = e.target; if (t && t._selAll){ e.preventDefault(); t._selAll = false; } });
