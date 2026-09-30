@@ -173,6 +173,8 @@
 .navwarn .nw-bad{border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:8px 12px}
 .navwarn .nw-bad ul{margin:4px 0 0;padding-left:18px}
 .navwarn .nw-info{color:var(--muted);margin-bottom:6px}
+.navwarn .nw-warn{border:1px solid #d97706;background:#fff7ed;color:#9a3412;border-radius:6px;padding:8px 12px;margin-bottom:6px}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .navwarn .nw-warn{background:#3b2410;color:#F0A54A} }
 .chk li.caut{color:#b45309}
 .chk li.info{color:var(--muted);font-weight:400}
 td.calc.incl{color:var(--warn)}
@@ -1831,7 +1833,7 @@ const AIRCRAFT = {
 
 const LS_KEY = "fcy-flightlog-draft-v2";
 const $ = id => document.getElementById(id);
-const BUILD = "2026-09-30f";
+const BUILD = "2026-09-30i";
 /* Open-Meteo: mit Schlüssel (kommerzielle Lizenz) laufen alle Abrufe über die customer-Server */
 const OM_KEY_LS = "fcy-om-key";
 function omKey(){ try{ return (localStorage.getItem(OM_KEY_LS) || "").trim(); }catch(e){ return ""; } }
@@ -2099,6 +2101,8 @@ function migrateState(s){
         if (s.fuel.descRate === undefined) s.fuel.descRate = "500";
         if (s.fuel.stepRate === undefined) s.fuel.stepRate = "";
         if (!s.map) s.map = {};
+        /* früher schrieb die App die Auto-TAS fest ins Leg — ohne tasOwn-Kennzeichen gilt sie wieder als automatisch */
+        for (const l of [...s.legs, s.altn || {}]) if (l && l.tasOwn === undefined){ l.tas = ""; l.tasOwn = false; }
         { const ac0 = AIRCRAFT[s.callsign];
           s.wb = Object.assign({ masses:null, fuelTo:"", fuelLdg:"", density:ac0.density, fuelArm:ac0.fuelArm }, s.wb || {});
           if (s.wb.density == null || s.wb.density === "") s.wb.density = ac0.density;
@@ -2233,7 +2237,7 @@ function legInputs(l, idx, isAltn){
     const ph = phFor(k);
     h += `<td><input data-k="${k}" data-i="${p}" value="${esc(l[k])}" inputmode="decimal"`+
          `${ph ? ` placeholder="${esc(ph.v)}" title="${esc(ph.t)}"` : ""}`+
-         `${k==="alt"&&altBelowMsa?` class="warn-in" title="Geplante Höhe liegt unter der MSA dieses Segments"`:""}></td>`;
+         `${k==="msa"&&l.msaStale&&String(l.msa??"").trim()===""?` class="warn-in"`:""}${k==="alt"&&altBelowMsa?` class="warn-in" title="Geplante Höhe liegt unter der MSA dieses Segments"`:""}></td>`;
   }
   return h;
 }
@@ -2343,6 +2347,7 @@ function render(){
     const altBelowMsa = num(l.alt) != null && num(l.msa) != null && num(l.alt) < num(l.msa);
     ["msa","alt","tas","wd","ws","tc","var"].forEach((k,ci)=>{
       let ph = null;
+      if (k === "msa" && l.msaStale && String(l.msa ?? "").trim() === "") ph = {v: "fehlt", t: "Route geändert — MSA neu ermitteln („Alles berechnen“) oder aus der ICAO-Karte eintragen"};
       if (String(l[k] ?? "").trim() === ""){
         if (k === "alt" && PHalt[i] != null)
           ph = {v: fmt0(PHalt[i]), t: "Höhe geerbt bzw. Standard-Reiseflughöhe — eintragen zum Ändern"};
@@ -2417,7 +2422,9 @@ function render(){
     if (nw){
       const note = GEO_NOTE && Date.now() - GEO_NOTE.t < 20000 ? `<div class="nw-info">ℹ ${esc(GEO_NOTE.txt)}</div>` : "";
       const bad = ISS.length ? `<div class="nw-bad"><b>✘ Flugplan unvollständig — Flugzeit und Kraftstoffbedarf nicht verwendbar:</b><ul>${ISS.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>` : "";
-      nw.innerHTML = note + bad; nw.hidden = !(note || bad);
+      const ms = state.legs.map((l,i) => l.msaStale ? legLabel(i) : null).filter(Boolean).concat(state.altn && state.altn.msaStale ? ["Alternate"] : []);
+      const msw = ms.length ? `<div class="nw-warn">⚠ <b>MSA fehlt nach Routenänderung:</b> ${esc(ms.join(", "))} — „Alles berechnen“ oder aus der ICAO-Karte eintragen</div>` : "";
+      nw.innerHTML = note + msw + bad; nw.hidden = !(note || msw || bad);
     } }
   etaSync(totMinAdj || totMin, ISS);
   renderFuel(ac, totMinAdj || totMin, ca.min, ISS);
@@ -2490,17 +2497,19 @@ function geoFillSeg(o, p0, p1){
 let GEO_NOTE = null;
 function geoStaleSync(){
   if (!state || !state.legs) return;
-  const G = geoSigs(), redone = [];
+  const G = geoSigs(), redone = [], msaGone = [];
+  /* MSA gilt für den Korridor eines Legs — ändert er sich, ist sie ungültig (berechnet wie selbst eingetragen) */
+  const dropMsa = (o, name) => { if (String(o.msa ?? "").trim() !== ""){ o.msa = ""; o.msaStale = true; msaGone.push(name); } };
   const one = (o, g, name) => {
     const has = String(o.dist ?? "").trim() !== "" || String(o.tc ?? "").trim() !== "";
     if (o.geoSig == null){ if (has) o.geoSig = g.sig; o.geoStale = false; return; }   /* Altbestand: Ausgangsbasis */
     if (o.geoSig === g.sig){ o.geoStale = false; return; }
-    if (g.p0 && g.p1){ geoFillSeg(o, g.p0, g.p1); o.geoSig = g.sig; o.geoStale = false; redone.push(name); }
-    else o.geoStale = true;                                                            /* nicht berechenbar → sperren */
+    if (g.p0 && g.p1){ geoFillSeg(o, g.p0, g.p1); o.geoSig = g.sig; o.geoStale = false; redone.push(name); dropMsa(o, name); }
+    else { o.geoStale = true; dropMsa(o, name); }                                       /* nicht berechenbar → sperren */
   };
   state.legs.forEach((l,i) => one(l, G.legs[i], legLabel(i)));
   if (state.altn) one(state.altn, G.a, "Alternate");
-  if (redone.length) GEO_NOTE = {t: Date.now(), txt: `Route geändert — Distanz, TC und VAR automatisch neu berechnet: ${redone.join(", ")}`};
+  if (redone.length) GEO_NOTE = {t: Date.now(), txt: `Route geändert — Distanz, TC und VAR automatisch neu berechnet: ${redone.join(", ")}${msaGone.length ? ` · MSA gelöscht (Korridor geändert): ${msaGone.join(", ")}` : ""}`};
 }
 function geoSigMark(key){
   const G = geoSigs();
@@ -2918,7 +2927,14 @@ function init(){
           for (let j = from+1; j < state.legs.length; j++) state.legs[j].var = t.value;
           state.altn.var = t.value;
         }
-        if (t.dataset.k === "alt") autoTas(obj);
+        if (t.dataset.k === "alt"){
+          autoTas(obj);
+          /* Höhenwinde der neuen Höhe aus den geladenen Profilen (alle Legs, da leere Höhen erben) */
+          if (typeof windsProfiles !== "undefined" && windsProfiles && windsProfiles.length) applyWindsToLegs({autoOnly:true, noRender:true, quiet:true});
+        }
+        if (t.dataset.k === "tas") obj.tasOwn = String(t.value).trim() !== "";
+        if (t.dataset.k === "wd" || t.dataset.k === "ws") obj.windAuto = false;
+        if (t.dataset.k === "msa" && String(t.value).trim() !== "") obj.msaStale = false;
         if (["dist","tc"].includes(t.dataset.k)) geoSigMark(t.dataset.i);   /* Handeingabe gilt für die aktuelle Strecke */
         if (["eto","ato"].includes(t.dataset.k)) { saveState(); refreshCalcOnly(); }
         else renderPreservingFocus(t);
@@ -3100,10 +3116,10 @@ function effLegs(){
     return e;
   });
 }
+/* TAS: leer = automatisch aus Leistung und (geerbter) Höhe, grau angezeigt. Gespeichert wird nur eine selbst
+   eingetragene TAS (tasOwn) — die bleibt bei Leistungs-, Höhen- und Musterwechsel stehen. */
 function autoTas(leg){
-  const ac = AIRCRAFT[state.callsign];
-  const v = cruiseTas(ac, num(leg.alt));
-  if (v != null) leg.tas = String(v);
+  if (leg && !leg.tasOwn) leg.tas = "";
 }
 function hydratePwr(){
   const ac = AIRCRAFT[state.callsign], sel = $("pwr");
@@ -4859,7 +4875,7 @@ async function msaCalcRun(){
       const vals = el.slice(o, o + s.pts.length); o += s.pts.length;
       if (!vals.length) continue;
       const mef = Math.ceil((Math.max(...vals) + MSA_OBST_FT) / 100) * 100;
-      s.leg.msa = String(mef + MSA_ADD_FT);
+      s.leg.msa = String(mef + MSA_ADD_FT); s.leg.msaStale = false;
       done++;
     }
     state.msaSig = msaSig();
@@ -4940,9 +4956,10 @@ function ensureDestLeg(){
   /* leer UND ohne Pin = das ist bereits das DEST-Leg; leer MIT Pin = eigener Wegpunkt -> Schluss-Leg noetig */
   if (lr === dest) return false;
   if (lr === "" && last.lat == null) return false;
-  const nl = blankLeg(last.tas || AIRCRAFT[state.callsign].climbTas);
+  const nl = blankLeg(last.tasOwn ? last.tas : "");
+  if (last.tasOwn) nl.tasOwn = true;
   if (String(last.var||"").trim() !== "") nl.var = last.var;
-  if (String(last.alt||"").trim() !== ""){ nl.alt = last.alt; autoTas(nl); }
+  if (String(last.alt||"").trim() !== "") nl.alt = last.alt;
   state.legs.push(nl);
   return true;
 }
@@ -5274,8 +5291,9 @@ function legSplitAt(A, B, legIdx, t){
   const L0 = state.legs[legIdx];
   if (!L0 || !A || !B || !(t > 0.02 && t < 0.98)) return -1;
   const P = mercInterp(A, B, t);
-  const nl = blankLeg(L0.tas || (AIRCRAFT[state.callsign] || {}).climbTas);
-  for (const k of ["alt","tas","wd","ws","var","msa"]) if (L0[k] !== undefined) nl[k] = L0[k];
+  const nl = blankLeg(L0.tasOwn ? L0.tas : "");
+  for (const k of ["alt","wd","ws","var","msa"]) if (L0[k] !== undefined) nl[k] = L0[k];
+  if (L0.tasOwn){ nl.tas = L0.tas; nl.tasOwn = true; }
   nl.lat = round5(P.lat); nl.lon = round5(P.lon); nl.loc = "Pin"; nl.route = ""; nl.onLine = true;
   const tc = String(L0.tc ?? "").trim() !== "" ? String(L0.tc).trim() : String(Math.round(gcTc(A, B)) % 360);
   const dTot = num(L0.dist) ?? gcNm(A, B);
@@ -5771,10 +5789,12 @@ async function windsLoadApply(){
   if (windsProfiles && windsProfiles.length) applyWindsToLegs();
   else info.textContent = "Höhenwinde nicht verfügbar — Details oben im Wetter-Bereich.";
 }
-function applyWindsToLegs(){
+/* opt.autoOnly: nur Legs mit automatisch übernommenem Wind (nach Höhenänderung) — selbst eingetragene bleiben;
+   opt.noRender/quiet: aus dem Eingabe-Handler heraus (Fokus bleibt, keine Statusmeldung) */
+function applyWindsToLegs(opt = {}){
   const info = $("windsApplyInfo");
   if (!windsProfiles || !windsProfiles.length){
-    if (info) info.textContent = `Keine Windprofile im Speicher — erst „Höhenwinde laden" drücken`;
+    if (info && !opt.quiet) info.textContent = `Keine Windprofile im Speicher — erst „Höhenwinde laden" drücken`;
     return;
   }
   try{
@@ -5785,6 +5805,7 @@ function applyWindsToLegs(){
     return profileFor("dep");
   };
   const fillLeg = (leg, startProf, endProf, altFallback, name) => {
+    if (opt.autoOnly && leg.windAuto === false) return;      /* selbst eingetragener Wind */
     const alt = num(leg.alt) ?? altFallback;
     if (alt == null){ skipped.push(name + " (keine Höhe)"); return; }
     const lists = [startProf, endProf].filter(Boolean);
@@ -5796,6 +5817,7 @@ function applyWindsToLegs(){
     if (dir === 0) dir = 360;
     leg.wd = String(dir);
     leg.ws = String(Math.round(kt));
+    leg.windAuto = true;
     applied.push(name);
   };
   const EA = effLegs();
@@ -5807,8 +5829,8 @@ function applyWindsToLegs(){
     for (let j=state.legs.length-1; j>=0; j--){ const pr = profileFor("l"+j); if (pr){ aStart = pr; break; } }
   }
   fillLeg(state.altn, aStart, profileFor("a"), num(altnEff().alt), "Alternate");
-  render();
-  if (info) info.textContent = applied.length
+  if (!opt.noRender) render();
+  if (info && !opt.quiet) info.textContent = applied.length
     ? `Übernommen: ${applied.length} Zeile${applied.length>1?"n":""}${skipped.length ? " · übersprungen: " + skipped.join(", ") : ""}`
     : `Nichts übernommen — ${skipped.join(", ") || "keine Zeilen"}`;
   }catch(err){
