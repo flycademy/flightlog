@@ -173,6 +173,10 @@
 .navwarn .nw-bad{border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:8px 12px}
 .navwarn .nw-bad ul{margin:4px 0 0;padding-left:18px}
 .navwarn .nw-info{color:var(--muted);margin-bottom:6px}
+.exin{display:flex;align-items:center;gap:6px}.exin input{width:4.2em;min-width:0}.exin span{color:var(--muted);font-size:13px}
+button.awb{border:0;background:transparent;padding:0 4px;font-size:15px;color:var(--muted);cursor:pointer;line-height:1}
+button.awb.set{color:var(--accent)}
+.awchip{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);padding:2px 0 4px 2px}.awchip input{width:3.6em}
 .navwarn .nw-warn{border:1px solid #d97706;background:#fff7ed;color:#9a3412;border-radius:6px;padding:8px 12px;margin-bottom:6px}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .navwarn .nw-warn{background:#3b2410;color:#F0A54A} }
 .chk li.caut{color:#b45309}
@@ -1124,6 +1128,7 @@ html.mapfs-lock,html.mapfs-lock body{overflow:hidden}
       <div class="field"><label for="dep">DEP</label><input id="dep" maxlength="4" placeholder="EDVE"></div>
       <div class="field"><label for="dest">DEST</label><input id="dest" maxlength="4"></div>
       <div class="field"><label for="altn">ALTN</label><input id="altn" maxlength="4"></div>
+      <div class="field"><label for="circN" title="Platzrunden am Zielplatz vor der Landung — mit Reiseverbrauch gerechnet. Reiner Platzrundenflug: DEP = DEST, keine Strecke.">Platzrunden</label><div class="exin" title="Anzahl × Minuten je Runde, am Zielplatz vor der Landung"><input id="circN" data-ex="circN" inputmode="numeric" placeholder="0" aria-label="Anzahl Platzrunden"><span>×</span><input id="circMin" data-ex="circMin" inputmode="decimal" placeholder="10" aria-label="Minuten je Platzrunde"><span>min</span></div></div>
       <div class="field"><label for="prep">Prep. by</label><input id="prep"></div>
       <div class="field"><label for="pic">PIC / Sign</label><input id="pic"></div>
       <div class="field"><label for="etd">ETD <small>(UTC)</small></label><input id="etd" placeholder="hh:mm"></div>
@@ -1833,7 +1838,7 @@ const AIRCRAFT = {
 
 const LS_KEY = "fcy-flightlog-draft-v2";
 const $ = id => document.getElementById(id);
-const BUILD = "2026-09-30s";
+const BUILD = "2026-10-01c";
 /* Open-Meteo: mit Schlüssel (kommerzielle Lizenz) laufen alle Abrufe über die customer-Server */
 const OM_KEY_LS = "fcy-om-key";
 function omKey(){ try{ return (localStorage.getItem(OM_KEY_LS) || "").trim(); }catch(e){ return ""; } }
@@ -1908,8 +1913,24 @@ function roundedLegMins(mins){
   (mins || []).forEach((m, i) => { before[i] = prevR; if (m == null || !isFinite(m)){ leg[i] = null; return; } c += m; const r = Math.round(c); leg[i] = r - prevR; prevR = r; });
   return {leg, before, total: prevR};
 }
+/* ---------- Platzrunden & Airwork: Zusatzzeiten mit Reiseverbrauch ----------
+   awAt[j] = Airwork-Minuten am Wegpunkt j (1..N, N = Zielplatz), circ = Platzrunden am Zielplatz vor der Landung.
+   localOnly: DEP = DEST ohne Strecke (reiner Platzrunden-/Airwork-Flug) — kein Steigflug auf Reiseflughöhe, kein TOC/TOD. */
+function extraPlan(){
+  const x = (state && state.extra) || {}, legs = (state && state.legs) || [], N = legs.length;
+  const awAt = new Array(N + 1).fill(0);
+  legs.forEach((l, i) => { const m = num(l.awMin); if (m != null && m > 0) awAt[i + 1] = m; });   /* Airwork hängt am Wegpunkt am Ende von Leg i */
+  const cn = num(x.circN), cm = num(x.circMin);
+  const circ = (cn != null && cn > 0 && cm != null && cm > 0) ? cn * cm : 0;
+  const total = awAt.reduce((s, v) => s + v, 0) + circ;
+  const h = (state && state.head) || {}, dep = String(h.dep || "").trim().toUpperCase(), dest = String(h.dest || "").trim().toUpperCase();
+  const routeEmpty = legs.every(l => !["dist","tc","route"].some(k => String(l[k] ?? "").trim() !== "") && l.lat == null);
+  const localOnly = !!dep && dep === dest && routeEmpty && (circ > 0 || awAt[N] > 0);
+  return {awAt, circ, cn, cm, destMin: awAt[N] + circ, total, localOnly, N};
+}
 /* ---------- Top of Climb / Top of Descent ---------- */
 function tocTod(ac, totMin, totDist, calcs, altnMin){
+  if (extraPlan().localOnly) return {toc:null, tod:null, steps:[], descs:[], events:[], warns:[]};
   const out = {toc:null, tod:null, warns:[]};
   if (!state.legs.length || !ac) return out;
   const FC = calcFuel(ac, totMin, altnMin);
@@ -2087,7 +2108,8 @@ function defaultState(cs){
     apElev:{},
     map:{},
     perf: initPerf(cs),
-    fuel:{ res:"vfr", climbMin:"", appMin:"10", altnMin:"", fob:"", descRate:"500", stepRate:"" }
+    fuel:{ res:"vfr", climbMin:"", appMin:"10", altnMin:"", fob:"", descRate:"500", stepRate:"" },
+    extra:{ circN:"", circMin:"10" }
   });
 }
 
@@ -2109,6 +2131,9 @@ function migrateState(s){
         if (s.fuel.descRate === undefined) s.fuel.descRate = "500";
         if (s.fuel.stepRate === undefined) s.fuel.stepRate = "";
         if (!s.map) s.map = {};
+        if (!s.extra) s.extra = { circN:"", circMin:"10" };
+        /* frühere Liste „Airwork bei Wegpunkt j“ an den Wegpunkt selbst übertragen */
+        if (Array.isArray(s.extra.aw)){ for (const a of s.extra.aw){ const j = Math.round(num(a.at) ?? -1); if (j >= 1 && j <= s.legs.length && String(a.min ?? "").trim()) s.legs[j-1].awMin = String(a.min); } delete s.extra.aw; }
         /* früher schrieb die App die Auto-TAS fest ins Leg — ohne tasOwn-Kennzeichen gilt sie wieder als automatisch */
         for (const l of [...s.legs, s.altn || {}]) if (l && l.tasOwn === undefined){ l.tas = ""; l.tasOwn = false; }
         { const ac0 = AIRCRAFT[s.callsign];
@@ -2134,6 +2159,8 @@ function planHasContent(s){
     || (txt(s.wb.density) && num(s.wb.density) !== num(ac.density))
     || (txt(s.wb.fuelArm) && num(s.wb.fuelArm) !== num(ac.fuelArm))));
   const ownTas = (s.legs || []).some(l => l.tasOwn && txt(l.tas));
+  const ex = s.extra || {};
+  if (txt(ex.circN) || (s.legs || []).some(l => txt(l.awMin))) return true;
   return legs || txt(f.fob) || txt(h.pilot) || txt(h.altn) || txt(a.route) || a.lat != null
     || (s.wb && (txt(s.wb.fuelTo) || txt(s.wb.fuelLdg))) || wbChanged || ownTas;
 }
@@ -2395,8 +2422,9 @@ function render(){
     put(s + h2 - 1, 0, `<td class="route${isDest ? " rend" : ""}"${sp(wpSpan)}><div class="rt">${isDest ? `<small class="wtag">DEST</small>` : ""}<input data-k="route" data-i="${p}" value="${esc(l.route)}" placeholder="${esc(rph)}">`+
       `<button type="button" class="pin${l.lat!=null?" set":""}" data-geo="${p}" `+
       `title="${l.lat!=null?"Verortet: "+esc(l.loc||"")+" — klicken zum Ändern":"Wegpunkt verorten"}" aria-label="Wegpunkt verorten">📍</button>`+
+      `<button type="button" class="awb${l.awMin != null ? " set" : ""}" data-awt="${i}" title="Airwork an diesem Wegpunkt (Zeit mit Reiseverbrauch)" aria-label="Airwork">⟳</button>`+
       `${isDest ? "" : `<button type="button" class="rmx" data-rm="${i}" title="Wegpunkt entfernen (Leg ${i+1})" aria-label="Wegpunkt entfernen">✕</button>`}`+
-      `</div></td>`);
+      `</div>${l.awMin != null ? `<div class="awchip">⟳ Airwork <input data-k="awMin" data-i="${p}" value="${esc(l.awMin)}" inputmode="decimal" aria-label="Airwork-Minuten"> min</div>` : ""}</td>`);
     put(s + h2 - 1, 16, `<td${sp(wpSpan)}><input data-k="eto" data-i="${p}" value="${esc(l.eto)}" placeholder="hh:mm"></td>`);
     put(s + h2 - 1, 17, `<td${sp(wpSpan)}><input data-k="ato" data-i="${p}" value="${esc(l.ato)}" placeholder="hh:mm"></td>`);
     if (h2 > 2){
@@ -2415,9 +2443,11 @@ function render(){
     `<td class="calc">–</td><td class="calc">${fmtT(ca.min)}</td><td class="calc">–</td><td colspan="3"></td>`;
 
   $("totDist").textContent = totDist ? fmt0(totDist) : "–";
-  $("totTime").textContent = fmtT(totMinAdj || null);
+  const XPr = extraPlan(), totAll = (totMinAdj || 0) + XPr.total;
+  $("totTime").textContent = fmtT(totAll || null);
+  $("totTime").title = XPr.total ? `inkl. ${fmtT(XPr.total)} Platzrunden/Airwork` : "";
   $("totDistAlt").textContent = (totDist || ca.dist) ? fmt0(totDist + (ca.dist||0)) : "–";
-  $("totTimeAlt").textContent = fmtT((totMinAdj||0) + (ca.min||0) || null);
+  $("totTimeAlt").textContent = fmtT(totAll + (ca.min||0) || null);
 
   /* TOC / TOD */
   $("tocTodInfo").textContent = (tocTodText(TT, state.head) || "–") + (ADJ.any ? " · Leg-Zeiten inkl. Steigphasen (Steig-GS)" : "");
@@ -2452,8 +2482,8 @@ function render(){
       const pw = TW.length ? `<div class="nw-warn">⚠ <b>Höhenprofil prüfen:</b> ${TW.map(esc).join(" · ")}</div>` : "";
       nw.innerHTML = note + uw + pw + msw + bad; nw.hidden = !(note || uw || pw || msw || bad);
     } }
-  etaSync(totMinAdj || totMin, ISS);
-  renderFuel(ac, totMinAdj || totMin, ca.min, ISS);
+  etaSync(totAll || totMin, ISS);
+  renderFuel(ac, totAll || totMin, ca.min, ISS);
   if (MAP) mapSync(false);
   saveState();
 }
@@ -2523,6 +2553,8 @@ function geoSigs(){
   return {legs, a: {sig: segKey(last) + ">" + segKey(altn), p0: last.c, p1: altn.c}};
 }
 function geoFillSeg(o, p0, p1){
+  /* Strecke ohne Länge (z. B. DEP = DEST beim reinen Platzrundenflug): nichts zu navigieren → leer lassen */
+  if (gcNm(p0, p1) < 0.05){ o.dist = ""; o.tc = ""; return; }
   o.dist = String(Math.round(gcNm(p0,p1)*10)/10);
   o.tc = String(Math.round(gcTc(p0,p1)) % 360);
   const dv = magVarAt((p0.lat+p1.lat)/2, (p0.lon+p1.lon)/2);
@@ -2598,7 +2630,9 @@ const LEG_SPEC = [["dist",0.1,3000,"Distanz"],["tas",30,400,"TAS"],["tc",0,360,"
 function navIssues(calcs, ca){
   const out = []; let any = false;
   const E = effLegs();
+  const LOC = extraPlan().localOnly;      /* reiner Platzrundenflug: das Leg DEP→DEST hat nichts zu navigieren */
   state.legs.forEach((l,i) => {
+    if (LOC) return;
     const has = ["dist","tc","route","tas","wd","ws"].some(k => String(l[k] ?? "").trim() !== "") || l.lat != null;
     if (!has) return;
     any = true;
@@ -2616,7 +2650,12 @@ function navIssues(calcs, ca){
       out.push(`${nm}: ${why}`);
     }
   });
-  if (!any) out.push("Noch keine Strecke eingetragen");
+  const XP = extraPlan();
+  if (!any && !XP.localOnly) out.push("Noch keine Strecke eingetragen");
+  { const x = state.extra || {};
+    out.push(...fieldBad(x, [["circN",0,60,"Anzahl Platzrunden"],["circMin",1,120,"Minuten je Platzrunde"]]).map(t => `Platzrunden: ${t}`));
+    if (String(x.circN ?? "").trim() !== "" && num(x.circN) != null && num(x.circN) !== Math.round(num(x.circN))) out.push(`Platzrunden: Anzahl „${x.circN}“ muss ganzzahlig sein`);
+    state.legs.forEach((l, i) => { const bad = fieldBad(l, [["awMin",1,300,"Airwork-Minuten"]]); if (bad.length) out.push(`${legLabel(i)}: ${bad.join(", ")}`); }); }
   const a = state.altn || {}, h = state.head || {};
   const aUsed = String(a.route || "").trim() || a.lat != null || String(h.altn || "").trim() || String(a.dist || "").trim();
   const aOver = String((state.fuel || {}).altnMin ?? "").trim() !== "";
@@ -2640,10 +2679,11 @@ function tripCore(ac){
   const ca = computeLeg(altnEff());
   const TT = tocTod(ac, totMinRaw, totDist, calcs, ca.min);
   const ADJ = legMinutesAdj(calcs, TT);
-  const totMin = ADJ.tot || totMinRaw;
+  const XP = extraPlan(), routeMin = ADJ.tot || totMinRaw;
+  const totMin = routeMin + XP.total;            /* inkl. Platzrunden/Airwork */
   const FC = calcFuel(ac, totMin, ca.min);
   const issues = navIssues(calcs, ca);
-  return {calcs, totDist, totMinRaw, ca, TT, ADJ, totMin, FC, issues};
+  return {calcs, totDist, totMinRaw, ca, TT, ADJ, totMin, routeMin, XP, FC, issues};
 }
 function calcWB(ac){
   ensureMasses(ac);
@@ -3029,6 +3069,12 @@ function init(){
       state.fuel[t.dataset.fu] = t.value;
       renderPreservingFocus(t);
     }
+    /* Platzrunden & Airwork */
+    if (t.dataset.ex !== undefined && t.tagName !== "SELECT"){
+      const x = state.extra || (state.extra = {circN:"", circMin:"10"});
+      x[t.dataset.ex] = t.value;
+      renderPreservingFocus(t); saveState();
+    }
   });
   for (const [id,key] of [["fuelTo","fuelTo"],["fuelLdg","fuelLdg"],["fuelDens","density"],["fuelArm","fuelArm"]])
     $(id).addEventListener("input", e=>{ state.wb[key]=e.target.value; renderPreservingFocus(e.target); saveState(); });
@@ -3039,6 +3085,16 @@ function init(){
     if (e.target.dataset && e.target.dataset.fu !== undefined && e.target.tagName === "SELECT"){
       state.fuel[e.target.dataset.fu] = e.target.value; render(); saveState();
     }
+
+  });
+  document.addEventListener("click", e => {
+    const b = e.target.closest && e.target.closest("[data-awt]");
+    if (!b) return;
+    const l = state.legs[+b.dataset.awt]; if (!l) return;
+    const on = l.awMin != null;
+    if (on) delete l.awMin; else l.awMin = "20";
+    render(); saveState();
+    if (!on){ const f = document.querySelector(`input[data-k="awMin"][data-i="l${b.dataset.awt}"]`); if (f){ f.focus(); try{ f.select(); }catch(err){} } }
   });
 
   document.addEventListener("click", e=>{
@@ -3738,7 +3794,8 @@ function calcFuel(ac, tripMin, altnAutoMin){
   const depElev = depPA - qOff;
   const S = climbSpec(ac);
   const trAlt = depElev + S.agl;
-  const prof = (cruiseAlt != null && cruiseAlt > depElev) ? climbProfile(ac, depElev, cruiseAlt, trAlt, qOff) : null;
+  const XPf = extraPlan();
+  const prof = (!XPf.localOnly && cruiseAlt != null && cruiseAlt > depElev) ? climbProfile(ac, depElev, cruiseAlt, trAlt, qOff) : null;
   const climbAuto = !!(prof && prof.min > 0);
   const auto = climbAuto ? {min: prof.min, nm: prof.nm, l: cl != null ? prof.min/60*cl : null, over:false} : null;
   const stepRate = prof && prof.roc2a != null ? Math.round(prof.roc2a) : (S.override ?? Math.round(rocAt(S, (cruiseAlt||0) + qOff, ac) * S.k));
@@ -3776,12 +3833,13 @@ function calcFuel(ac, tripMin, altnAutoMin){
     ? ` · +${steps.length} Step-Climb${steps.length>1?"s":""} (${stepsMin.toFixed(0)} min, ${stepsL.toFixed(1)} l, ${fmt0(S.cc)} KIAS)`
     : "";
   const cruiseL = L(cruiseMin), appL = L(appMin), altnL = L(altnMin), frfL = L(frfMin);
+  const exMin = XPf.total, exL = L(exMin);   /* Anteil Platzrunden/Airwork im Reiseflug (Reiseverbrauch) */
   const parts = [TAXI, climbLAll, cruiseL, appL, altnL, frfL];
   const mfr = parts.every(v => v != null) ? parts.reduce((s,v)=>s+v,0) : null;
   const fob = num(f.fob);
   const extra = (fob != null && mfr != null) ? fob - mfr : null;
   const safeMin = (fob != null && cr && frfL != null) ? Math.max(0, (fob - TAXI - frfL)/cr*60) : null;
-  return {prof, S, trAlt, depElev, f, cr, cl, cruiseAlt, seq, qOff, steps, stepsMin, stepsL, stepRate, stepHint, auto, climbAuto, climbRateAuto, climbSrc, climbMin, climbL, climbLAll, climbRate, climbHint, appMin, altnOverride, altnMin, frfMin, cruiseMin, TAXI, cruiseL, appL, altnL, frfL, mfr, fob, extra, safeMin};
+  return {exMin, exL, prof, S, trAlt, depElev, f, cr, cl, cruiseAlt, seq, qOff, steps, stepsMin, stepsL, stepRate, stepHint, auto, climbAuto, climbRateAuto, climbSrc, climbMin, climbL, climbLAll, climbRate, climbHint, appMin, altnOverride, altnMin, frfMin, cruiseMin, TAXI, cruiseL, appL, altnL, frfL, mfr, fob, extra, safeMin};
 }
 function renderFuel(ac, tripMin, altnAutoMin, issues){
   issues = issues || [];
@@ -3825,7 +3883,7 @@ function renderFuel(ac, tripMin, altnAutoMin, issues){
     <div class="tblwrap fuelwrap" style="margin-top:12px"><table class="fueltbl"><thead><tr><th>Phase</th><th>Zeit</th><th>Rate</th><th>Menge</th></tr></thead><tbody>
       ${row("Anlassen, Rollen", null, null, TAXI, "OM-Pauschale")}
       ${row("Steigflug", climbMin + FC.stepsMin, climbRate, FC.climbLAll, climbHint + FC.stepHint)}
-      ${row("Reiseflug", cruiseMin, cr, cruiseL, "Nav Log abzügl. Steigzeit")}
+      ${FC.exMin ? row("Reiseflug Strecke", Math.max(0, cruiseMin - FC.exMin), cr, cr != null ? Math.max(0, cruiseMin - FC.exMin)/60*cr : null, "Nav Log abzügl. Steigzeit") + row("Platzrunden / Airwork", FC.exMin, cr, FC.exL, "mit Reiseverbrauch") : row("Reiseflug", cruiseMin, cr, cruiseL, "Nav Log abzügl. Steigzeit")}
       ${row("An- &amp; Abflug", appMin, cr, appL)}
       ${row("Alternate", altnMin, cr, altnL, altnOverride?"":"aus Alternate-Leg")}
       ${row("Final Reserve ("+(f.res==="night"?"VFR Nacht/IFR":"VFR Tag")+")", frfMin, cr, frfL)}
@@ -3900,13 +3958,18 @@ function buildKneeSheet(){
   const A = state.legs.map(l => num(l.alt));
   for (let i = 1; i < A.length; i++) if (A[i] == null) A[i] = A[i-1];
   const fA = A.find(a => a != null) ?? DEF_ALT; for (let i = 0; i < A.length; i++) if (A[i] == null) A[i] = fA;
+  /* Airwork am Wegpunkt k zählt zum Leg k (es beginnt dort): die Leg-Zeit am nächsten Wegpunkt enthält sie,
+     ETO = ATO vorher + Leg-Zeit gilt weiter. Platzrunden/Airwork am Ziel kommen nach DEST (destMin). */
+  const XP = extraPlan();
+  const legMin = i => { const m = ADJ.mins && ADJ.mins[i] != null ? ADJ.mins[i] : calcs[i].min; return m == null ? null : m + (i >= 1 ? XP.awAt[i] : 0); };
   const cumD = [], cumAt = []; { let d = 0, c = 0;
     state.legs.forEach((l,i) => { d += num(l.dist) || 0; cumD[i] = d;
-      const m = ADJ.mins && ADJ.mins[i] != null ? ADJ.mins[i] : calcs[i].min; c += m || 0; cumAt[i] = c; }); }
+      const m = legMin(i); c += m || 0; cumAt[i] = c; }); }
   /* Navlog-Logik: am Wegpunkt „+Zeit“ = Leg-Zeit vom vorigen Wegpunkt (ETO = ATO vorher + Leg-Zeit);
      in der Leg-Zelle Rest-Zeit bis zum Ziel und geplanter Kraftstoff an Bord, jeweils ab Beginn dieses Legs */
-  const RLK = roundedLegMins(state.legs.map((l,i) => ADJ.mins && ADJ.mins[i] != null ? ADJ.mins[i] : calcs[i].min));
-  const restMin = k => RLK.total - RLK.before[k];
+  const RLK = roundedLegMins(state.legs.map((l,i) => legMin(i)));
+  const destX = Math.round(XP.destMin);
+  const restMin = k => RLK.total - RLK.before[k] + destX;
   const restFuel = k => soll(k === 0 ? 0 : cumAt[k-1]);   /* geplant an Bord am Wegpunkt vor diesem Leg — Vergleich mit der Tankanzeige */
   /* TOC/TOD als Merkpunkte ohne eigene Zeit — ihre Zeit steckt in der Leg-Zeit bis zum nächsten Wegpunkt */
   const evOn = state.legs.map(() => []);
@@ -3924,7 +3987,8 @@ function buildKneeSheet(){
   };
 
   const wpL = k => { const s = k === 0 ? U(h.dep) : wpLabel(k-1);
-    return s.length > 8 ? `<span class="lng">${esc(s)}</span>` : esc(s); };
+    const aw = (k >= 1 && k < N && XP.awAt[k] > 0) ? `<small class="awn">⟳ ${f0(XP.awAt[k])}' Airwork</small>` : "";
+    return (s.length > 8 ? `<span class="lng">${esc(s)}</span>` : esc(s)) + aw; };
   /* TOC/TOD-Zeilen haben rechts keine eigenen Kästen: Fuel/+Zeit/ETO/ATO des Wegpunkts davor laufen durch,
      der Wert bleibt auf Höhe des Wegpunktnamens (.wv = Höhe zweier Halbzeilen) */
   /* Kästen eines Wegpunkts (+Zeit = Leg-Zeit des ANKOMMENDEN Legs, ETO, ATO). Liegen auf diesem Leg TOC/TOD-Zeilen,
@@ -3937,7 +4001,8 @@ function buildKneeSheet(){
   const wpR = (k, rs, mt, wvH) => { const T = k === 0 ? 0 : RLK.leg[k-1];
     /* 0,5 mm Luft: exakt gleiche Höhe + Rahmenlinien würde die Zeile dehnen (Mitte verschiebt sich nur 0,25 mm) */
     const v = x => `<div class="wv" style="margin-top:${mt.toFixed(2)}mm;height:${Math.max(2, wvH - 0.5).toFixed(2)}mm">${x}</div>`;
-    return `<td class="tm wvc" rowspan="${rs}">${v(`<b>${tH(T)}</b>`)}</td><td class="bx" rowspan="${rs}"></td><td class="bx" rowspan="${rs}"></td>`; };
+    const awN = (k >= 2 && XP.awAt[k-1] > 0) ? `<small class="awn">inkl. AW</small>` : "";
+    return `<td class="tm wvc" rowspan="${rs}">${v(`<b>${tH(T)}</b>${awN}`)}</td><td class="bx" rowspan="${rs}"></td><td class="bx" rowspan="${rs}"></td>`; };
   const legC = (k, rs) => {
     const l = state.legs[k], c = calcs[k], m0 = ADJ.mins && ADJ.mins[k] != null ? ADJ.mins[k] : c.min, msa = num(l.msa);
     /* Leg-Zeit = Differenz der gerundeten Summenzeiten → die Legs ergeben exakt die +Zeit (übliches Navlog-Verfahren) */
@@ -3967,7 +4032,7 @@ function buildKneeSheet(){
     const rsW = (k, first) => (first ? 0 : nDesc(k-1)) + 2 + (inT(k) ? nClimb(k) : 0);    /* überspannte Zeilen der rechten Kästen */
     const depR = `<td class="frq" colspan="3" rowspan="${rsW(a, true)}"><span>ATD:</span></td>`;   /* Abflugzeit direkt beim Abflugplatz */
     let s = `<table class="nav stg">${COLS}${TH}<tr class="hr"><td class="wp" rowspan="2"><b>${wpL(a)}</b></td>${top}${a === 0 ? depR : wpR(a, rsW(a, true), 0, H + bH(a))}</tr>`;
-    for (let k = a; k < b; k++){
+    for (let k = a; k < b && !XP.localOnly; k++){
       const cl = evOn[k].filter(e => e.t === "TOC"), de = evOn[k].filter(e => e.t !== "TOC");
       s += `<tr class="hr"${hst(bH(k))}>${legC(k, 2 + cl.length + de.length)}</tr>`;
       cl.forEach(ev => { s += `<tr class="er"><td class="evc">${evTxt(ev)}</td></tr>`; });
@@ -3977,8 +4042,16 @@ function buildKneeSheet(){
       s += `<tr class="hr"${hst(cH(k))}><td class="wp" rowspan="2"><b>${wpL(k+1)}</b></td>${de.length ? "" : R}</tr>`;
     }
     /* unter DEST: Schreibfeld für die Frequenz; am Ende von Blatt 1 (Fortsetzung folgt) bleibt es schraffiert */
-    s += b === N ? `<tr class="hr"><td class="frq" colspan="4"><span>Freq:</span></td></tr>` : `<tr class="hr"><td class="lgx" colspan="4"></td></tr>`;
-    if (withTot) s += `<tr class="tot"><td>Gesamt</td><td></td><td></td><td><b>${f1(totDist)}</b></td><td></td><td class="tm"><b>${tH(RLK.total)}</b></td><td></td><td></td></tr>`;
+    if (XP.localOnly) s += `<tr class="hr"><td class="lgx" colspan="4"></td></tr>`;      /* reiner Platzrundenflug: keine Strecke */
+    else s += b === N ? `<tr class="hr"><td class="frq" colspan="4"><span>Freq:</span></td></tr>` : `<tr class="hr"><td class="lgx" colspan="4"></td></tr>`;
+    /* Airwork am Ziel und Platzrunden: eigene Zeilen nach DEST, mit Zeit, ETO und ATO */
+    if (b === N){
+      const xRow = (lbl, desc, m) => `<tr class="hr"><td class="wp xw" rowspan="2">${lbl}</td><td class="xd" colspan="4" rowspan="2">${desc}</td>`+
+        `<td class="tm wvc" rowspan="2"><div class="wv" style="margin-top:0;height:${(2*H - 0.5).toFixed(2)}mm"><b>${tH(m)}</b></div></td><td class="bx" rowspan="2"></td><td class="bx" rowspan="2"></td></tr><tr class="hr"></tr>`;
+      if (XP.awAt[N] > 0) s += xRow(`<b>⟳ Airwork</b>`, `${f0(XP.awAt[N])} min am ${esc(U(h.dest))}`, XP.awAt[N]);
+      if (XP.circ > 0) s += xRow(`<b>⟳ Platz-<br>runden</b>`, `${f0(XP.cn)} × ${f0(XP.cm)} min am ${esc(U(h.dest))}`, XP.circ);
+    }
+    if (withTot) s += `<tr class="tot"><td>Gesamt</td><td></td><td></td><td><b>${totDist ? f1(totDist) : "–"}</b></td><td></td><td class="tm"><b>${tH(RLK.total + destX)}</b></td><td></td><td></td></tr>`;
     return s + `</table>`;
   };
   /* Platzbedarf in mm (normal / kompakt) — links mit Kopf und ATD-Zeile, rechts nur Tabellenkopf */
@@ -3986,7 +4059,8 @@ function buildKneeSheet(){
   /* Jedes Leg ist gleich hoch (2 Halbzeilen); Merkpunkt-Zeilen nehmen sich ihren Platz aus den angrenzenden
      Halbzeilen (Wegpunkt-Zellen werden flacher). Nur wenn das nicht reicht (≥ 3 Merkpunkte), wächst das Leg. */
   const legExtra = (k, sc) => { const x = n => n ? Math.max(0, n*EVH(sc) + halfH(n, sc) - HR(sc)) : 0; return x(nClimb(k)) + x(nDesc(k)); };
-  const need = (a, b, sc) => { let s = 11.2*sc*(b - a + 1); for (let k = a; k < b; k++) s += legExtra(k, sc); return s; };
+  const xRows = (XP.awAt[N] > 0 ? 1 : 0) + (XP.circ > 0 ? 1 : 0);
+  const need = (a, b, sc) => { let s = 11.2*sc*(b - a + 1 + (b === N ? xRows : 0)); for (let k = a; k < b; k++) s += legExtra(k, sc); return s; };
   const AV_L = 95.5, AV_R = 112;   /* links: Kopf + ATD/ATA-Block, Tabelle beginnt bei ~21,6 mm */
   let dens = "", split = -1;
   if (need(0, N, 1) > AV_L){
@@ -4079,7 +4153,10 @@ function buildKneeSheet(){
   .k2 .stg td.lgx,.k2 .stg td.hx{background-color:#fff;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAfklEQVR42rXPQQ7AIAgF0dHjcqB/Xbtqk6ZqRYEVqzeApCapkTCSWgUws5KBA5Ssy++9ZuJmVmomHvpBDw8LjPCQwAw/DvzhR4EVfDuwim8FPLg74MVdgR18ObCLLwVO8N/AKT4NRODDQBTeDUTin0A0/gpk4E8gCweomTjABcA7YzIan45/AAAAAElFTkSuQmCC);background-size:2.4mm 2.4mm;background-repeat:repeat}
   .k2 .stg td.frq,#printSheet .k2 .stg td.frq{vertical-align:top;text-align:left;padding:.3mm .8mm;line-height:1;font-size:6.5pt}.k2 .stg td.frq span{font-size:6.5pt;color:#444}
   .k2.c .stg td.frq,#printSheet .k2.c .stg td.frq{padding:.1mm .8mm}.k2.c .stg td.frq span{font-size:5.5pt}
-  .k2 .stg td.wvc,#printSheet .k2 .stg td.wvc{vertical-align:top;padding-top:0;padding-bottom:0}.k2 .stg td.wvc .wv{display:flex;align-items:center;justify-content:center}
+  .k2 .stg td.wvc,#printSheet .k2 .stg td.wvc{vertical-align:top;padding-top:0;padding-bottom:0}.k2 .stg td.wvc .wv{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05}
+  .k2 .stg small.awn{display:block;font-size:5.8pt;font-weight:400;color:#333;line-height:1.1}
+  .k2 .stg td.xw{font-size:8pt;line-height:1.1;white-space:nowrap;overflow:hidden}
+  .k2 .stg td.xd,#printSheet .k2 .stg td.xd{font-size:8pt;text-align:center;color:#222}
   .k2 .stg td.ext,#printSheet .k2 .stg td.ext{vertical-align:top;padding-top:0;padding-bottom:0}   /* #printSheet-Regel (vertical-align:middle) überstimmen */.k2 .stg td.ext .wv{height:11.2mm;display:flex;align-items:center;justify-content:center}
   .k2 .stg td.wp{text-align:left;font-size:9.5pt;line-height:1.05;padding-left:1mm}
   .k2 .stg td.wp .lng{font-size:7.8pt;overflow-wrap:anywhere}
@@ -4135,7 +4212,7 @@ function buildPrintSheet(){
   const ca = computeLeg(altnEff());
   const TTp = tocTod(ac, totMinRaw, totDist, calcs, ca.min);
   const ADJp = legMinutesAdj(calcs, TTp);
-  const totMin = ADJp.tot || totMinRaw;
+  const XPp = extraPlan(), totMin = (ADJp.tot || totMinRaw) + XPp.total;   /* inkl. Platzrunden/Airwork */
   if (TTp.tod && !TTp.tod.none) TTp.tod.startMin = totMin - TTp.tod.min;
   const N = Math.max(state.legs.length, 12);
   /* Kopf */
@@ -4207,7 +4284,12 @@ function buildPrintSheet(){
   const fuelTxt = (FC && ISSp.length) ? `<b>✘ Kraftstoff (OM-A 3.2.4): Flugplan UNVOLLSTÄNDIG — Mindestbedarf nicht ermittelt:</b> ${esc(ISSp.join(" · "))}`
     : FC ? `Kraftstoff (OM-A 3.2.4): Mindestbedarf <b>${f1(FC.mfr)} l</b> — Rollen ${f1(FC.TAXI)} · Steigflug ${f1(FC.climbLAll)} · Reise ${f1(FC.cruiseL)} · An-/Abflug ${f1(FC.appL)} · Alternate ${f1(FC.altnL)} · Final Reserve ${f1(FC.frfL)} (${FC.frfMin} min) — Vorrat ${f1(FC.fob)} l · Extra ${f1(FC.extra)} l · Sichere Flugzeit ${safeTxt} (${state.pwr} ${ac.cruise?ac.cruise.unit:""})` : "";
   const ttTxt = tocTodText(TTp, h);
-  out += `<tr><td class="ps-notes" colspan="11" rowspan="2">${fuelTxt}${ttTxt ? `<br>Profil: ${esc(ttTxt)}` : ""}</td>
+  /* Platzrunden/Airwork: in Total Time und Kraftstoff enthalten — hier ausdrücklich aufführen */
+  const exParts = [];
+  XPp.awAt.forEach((m, j) => { if (j >= 1 && m > 0) exParts.push(`Airwork ${j === state.legs.length ? String(h.dest||"").toUpperCase() : legLabel(j-1)} ${fmt0(m)} min`); });
+  if (XPp.circ > 0) exParts.push(`${fmt0(XPp.cn)} Platzrunden à ${fmt0(XPp.cm)} min am ${String(h.dest||"").toUpperCase()}`);
+  const exTxt = exParts.length ? `<br><b>Platzrunden/Airwork:</b> ${esc(exParts.join(" · "))} — zusammen ${fmtT(XPp.total)} (in Total Time und Kraftstoff enthalten, Reiseverbrauch)` : "";
+  out += `<tr><td class="ps-notes" colspan="11" rowspan="2">${fuelTxt}${exTxt}${ttTxt ? `<br>Profil: ${esc(ttTxt)}` : ""}</td>
       <td class="ps-lbl" colspan="2" style="text-align:center">Total Distance</td><td rowspan="2" class="nb"></td><td class="ps-lbl" colspan="2" style="text-align:center">Total Time</td><td colspan="3" rowspan="2" class="ps-notes"></td></tr>
     <tr><td class="tv" colspan="2">${totDist?fmt0(totDist):"–"} NM</td><td class="tv" colspan="2">${fmtT(totMin||null)}</td></tr>`;
   const al = altnEff();
@@ -4381,7 +4463,10 @@ function buildPrintPage2(){
     fu += row("Anlassen, Rollen", null, null, FC.TAXI, "OM-Pauschale");
     fu += row("Steigflug", FC.climbMin + FC.stepsMin, FC.climbRate, FC.climbLAll,
       (FC.climbAuto ? `Vy bis ${FC.S.agl} ft AGL, dann ${fmt0(FC.S.cc)} KIAS` : "keine Höhen-/Platzdaten") + FC.stepHint);
-    fu += row("Reiseflug", FC.cruiseMin, FC.cr, FC.cruiseL);
+    if (FC.exMin){ const rm = Math.max(0, FC.cruiseMin - FC.exMin);
+      fu += row("Reiseflug Strecke", rm, FC.cr, FC.cr != null ? rm/60*FC.cr : null);
+      fu += row("Platzrunden / Airwork", FC.exMin, FC.cr, FC.exL, "mit Reiseverbrauch"); }
+    else fu += row("Reiseflug", FC.cruiseMin, FC.cr, FC.cruiseL);
     fu += row("An- &amp; Abflug", FC.appMin, FC.cr, FC.appL);
     fu += row("Alternate", FC.altnMin, FC.cr, FC.altnL);
     fu += row(`Final Reserve (${FC.f.res==="night"?"VFR Nacht/IFR":"VFR Tag"})`, FC.frfMin, FC.cr, FC.frfL);
@@ -4437,7 +4522,8 @@ function renderPreservingFocus(t){
   let pos=null; try{ pos=t.selectionStart; }catch(e){}
   render();
   let el = null;
-  if (fu!==undefined) el = document.querySelector(`[data-fu="${fu}"]`);
+  if (t.dataset.ex !== undefined) el = document.querySelector(`[data-ex="${t.dataset.ex}"]${t.dataset.exi !== undefined ? `[data-exi="${t.dataset.exi}"]` : ""}`);
+  else if (fu!==undefined) el = document.querySelector(`[data-fu="${fu}"]`);
   else if (pb!==undefined) el = document.querySelector(`[data-pb="${pb}"][data-pk="${pk}"]`);
   else if (wb!==undefined) el = document.querySelector(`input[data-wb="${wb}"]`);
   else if (t.id) el = document.getElementById(t.id);
@@ -4470,6 +4556,7 @@ function hydrateHead(){
   $("etd").classList.toggle("dflt", !!h.etdDflt);
   $("eta").classList.toggle("dflt", !!h.etaDflt);
   $("wxExtra").value = (state.wx&&state.wx.extra)||"";
+  const x = state.extra || {}; $("circN").value = x.circN ?? ""; $("circMin").value = x.circMin ?? "";
 }
 
 /* ---------- METAR-Werte für die Performance ---------- */
@@ -5018,7 +5105,8 @@ function fillGeoLegs(only){
     if (only && only !== "all" && only !== "a" && !only.has(i)) return;
     const p0 = wps[i].c, p1 = wps[i+1].c;
     if (p0 && p1){
-      l.dist = fmtD(gcNm(p0,p1)); l.tc = fmtC(gcTc(p0,p1)); filled++;
+      if (gcNm(p0,p1) < 0.05){ l.dist = ""; l.tc = ""; }      /* Strecke ohne Länge (DEP = DEST, reiner Platzrundenflug) */
+      else { l.dist = fmtD(gcNm(p0,p1)); l.tc = fmtC(gcTc(p0,p1)); filled++; }
       const dv = magVarAt((p0.lat+p1.lat)/2, (p0.lon+p1.lon)/2);
       if (dv != null) l.var = fmtV(dv);
     }
