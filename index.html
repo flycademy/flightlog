@@ -1105,7 +1105,7 @@ html.mapfs-lock,html.mapfs-lock body{overflow:hidden}
   <header class="top">
     <div class="brand">
       <h1>Flight Log</h1>
-      <p>FlyCademy · VFR-Flugvorbereitung — Prototyp, Werte gegen AFM/OM prüfen</p>
+      <p>FlyCademy · Flugvorbereitung (OM Appendix 5.7)</p>
     </div>
     <div class="actions">
       <button id="btnPrint" class="primary" type="button">Drucken / PDF</button>
@@ -1244,14 +1244,14 @@ html.mapfs-lock,html.mapfs-lock body{overflow:hidden}
       <details class="hnt"><summary>Hinweise &amp; Quellen</summary>
       <span>Zeit = Dist / GS (ohne Aufschlag)</span>
       <span>TAS wird bei gesetzter ALT aus der Reisetabelle (ISA) für die gewählte Leistung gesetzt — bleibt manuell überschreibbar; Leg 1 im Steigflug ggf. anpassen</span>
-      <span>MSA je Segment gemäß OM-A 3.2.6 ermitteln und eintragen (VFR: höchstes Hindernis im 5-NM-Korridor bzw. MEF der Planquadrate + SERA-Mindesthöhe) — liegt ALT unter MSA, wird das Feld rot markiert</span>
+      <span>MSA je Segment gemäß OM-C 3.2.6 ermitteln und eintragen (VFR: höchstes Hindernis im 5-NM-Korridor bzw. MEF der Planquadrate + SERA-Mindesthöhe) — liegt ALT unter MSA, wird das Feld rot markiert</span>
       <span id="cruiseSrc"></span>
       </details>
     </div>
   </section>
 
   <section>
-    <h2>Kraftstoffplanung <button type="button" class="qm" data-help="Mindest-Kraftstoffbedarf gemäß OM-A 3.2.4 (NCO.OP.125(c), AMC1 NCO.OP.125(b)). Rollkraftstoff als OM-Pauschale je Muster, Steigflug aus POH-Tabelle bzw. Steigrate.">?</button></h2>
+    <h2>Kraftstoffplanung <button type="button" class="qm" data-help="Mindest-Kraftstoffbedarf gemäß OM-C 3.2.4 (NCO.OP.125(c), AMC1 NCO.OP.125(b)). Rollkraftstoff als OM-Pauschale je Muster, Steigflug aus POH-Tabelle bzw. Steigrate.">?</button></h2>
     <div id="fuelBox"></div>
   </section><section>
     <h2>Mass &amp; Balance <button type="button" class="qm" data-help="Grenzwerte und Arme aus den AFMs (P2008 Ed. 2 Rev. 9, DA 40 D FHB Rev. 6, C182R POH 29.08.1980) · BEM je Luftfahrzeug aus dem Wägebericht. Leeres Feld Kraftstoff Start = Mindestbedarf aus der Kraftstoffplanung.">?</button></h2>
@@ -1290,7 +1290,7 @@ html.mapfs-lock,html.mapfs-lock body{overflow:hidden}
   
 
   <footer>
-    <p>FlyCademy Flight Log — Werkzeug zur Flugvorbereitung, ersetzt weder Flughandbuch noch offizielle Flugberatung. Eingaben werden nur lokal auf diesem Gerät gespeichert.
+    <p><b>OM Appendix 5.7 · <span id="omRev"></span></b> · FlyCademy Flight Log — Werkzeug zur Flugvorbereitung, ersetzt weder Flughandbuch noch offizielle Flugberatung. Eingaben werden nur lokal auf diesem Gerät gespeichert.
       · <a href="https://flycademy.de/impressum/" target="_blank" rel="noopener">Impressum</a>
       · <a href="https://flycademy.de/datenschutzerklaerung/" target="_blank" rel="noopener">Datenschutz</a></p>
     <details class="hnt" id="settingsBox"><summary>Einstellungen</summary>
@@ -1838,7 +1838,10 @@ const AIRCRAFT = {
 
 const LS_KEY = "fcy-flightlog-draft-v2";
 const $ = id => document.getElementById(id);
-const BUILD = "2026-10-01c";
+const BUILD = "2026-10-03b";
+/* Revisionsstand des gelenkten Anhangs — bei jeder OM-Revision hier anpassen (Anhangsverzeichnis OM) */
+const OM_REV = "REV 0.3 / 10.10.2026";
+try{ const e = document.getElementById("omRev"); if (e) e.textContent = OM_REV; }catch(e){}
 /* Open-Meteo: mit Schlüssel (kommerzielle Lizenz) laufen alle Abrufe über die customer-Server */
 const OM_KEY_LS = "fcy-om-key";
 function omKey(){ try{ return (localStorage.getItem(OM_KEY_LS) || "").trim(); }catch(e){ return ""; } }
@@ -2715,7 +2718,7 @@ function calcWB(ac){
   if (String(state.wb.density ?? "").trim() === "") inErr.push("Kraftstoffdichte fehlt (Pflichtangabe)");
   if (String(state.wb.fuelArm ?? "").trim() === "") inErr.push("Fuel-Arm fehlt (Pflichtangabe)");
   const fobVal = num(state.fuel && state.fuel.fob);
-  const taxiL = ac.taxiL ?? 3.0;   /* wie Kraftstoffplanung (OM-A 3.2.4) */
+  const taxiL = ac.taxiL ?? 3.0;   /* wie Kraftstoffplanung (OM-C 3.2.4) */
   /* automatische Startmenge: Vorrat (sonst Mindestbedarf) abzüglich Anlassen/Rollen — beim Start ist er verbraucht */
   const rampAuto = String(state.wb.fuelTo ?? "").trim() === "" ? (fobVal != null ? fobVal : autoToFuel(ac)) : null;
   const toAutoVal = rampAuto != null ? Math.max(0, rampAuto - taxiL) : null;
@@ -3711,7 +3714,7 @@ function renderPerf(ac){
 }
 document.addEventListener("toggle", e => { const d = e.target; if (d && d.dataset && d.dataset.padj) PERF_ADJ[d.dataset.padj] = d.open; }, true);
 
-/* ---------- Kraftstoffplanung gemäß OM-A 3.2.4 ---------- */
+/* ---------- Kraftstoffplanung gemäß OM-C 3.2.4 ---------- */
 function climbFromTable(ac, fromFt, toFt){
   const T = ac.climbTable && ac.climbTable.rows;
   if (!T || toFt == null) return null;
@@ -3817,6 +3820,7 @@ function calcFuel(ac, tripMin, altnAutoMin){
   const altnOverride = String(f.altnMin).trim() !== "" && num(f.altnMin) != null;
   const altnMin = altnOverride ? Math.max(0, num(f.altnMin)) : (altnAutoMin != null ? altnAutoMin : 0);
   const frfMin = f.res === "night" ? 45 : 30;
+  const addMin = 30;   /* Zusatzreserve (Additional Reserve) OM-C 3.2.4 — bei Verzögerungen nutzbar, unabhängig von VFR/IFR */
   const cruiseMin = Math.max(0, (tripMin || 0) - climbMin - stepsMin);
   const TAXI = ac.taxiL ?? 3.0;
   const L = m => cr != null ? m/60*cr : null;
@@ -3834,12 +3838,13 @@ function calcFuel(ac, tripMin, altnAutoMin){
     : "";
   const cruiseL = L(cruiseMin), appL = L(appMin), altnL = L(altnMin), frfL = L(frfMin);
   const exMin = XPf.total, exL = L(exMin);   /* Anteil Platzrunden/Airwork im Reiseflug (Reiseverbrauch) */
-  const parts = [TAXI, climbLAll, cruiseL, appL, altnL, frfL];
+  const addL = L(addMin);
+  const parts = [TAXI, climbLAll, cruiseL, appL, altnL, frfL, addL];
   const mfr = parts.every(v => v != null) ? parts.reduce((s,v)=>s+v,0) : null;
   const fob = num(f.fob);
   const extra = (fob != null && mfr != null) ? fob - mfr : null;
   const safeMin = (fob != null && cr && frfL != null) ? Math.max(0, (fob - TAXI - frfL)/cr*60) : null;
-  return {exMin, exL, prof, S, trAlt, depElev, f, cr, cl, cruiseAlt, seq, qOff, steps, stepsMin, stepsL, stepRate, stepHint, auto, climbAuto, climbRateAuto, climbSrc, climbMin, climbL, climbLAll, climbRate, climbHint, appMin, altnOverride, altnMin, frfMin, cruiseMin, TAXI, cruiseL, appL, altnL, frfL, mfr, fob, extra, safeMin};
+  return {addMin, addL, exMin, exL, prof, S, trAlt, depElev, f, cr, cl, cruiseAlt, seq, qOff, steps, stepsMin, stepsL, stepRate, stepHint, auto, climbAuto, climbRateAuto, climbSrc, climbMin, climbL, climbLAll, climbRate, climbHint, appMin, altnOverride, altnMin, frfMin, cruiseMin, TAXI, cruiseL, appL, altnL, frfL, mfr, fob, extra, safeMin};
 }
 function renderFuel(ac, tripMin, altnAutoMin, issues){
   issues = issues || [];
@@ -3850,7 +3855,7 @@ function renderFuel(ac, tripMin, altnAutoMin, issues){
     box.innerHTML = `<div class="wb-note">Für dieses Muster sind noch keine Verbrauchsdaten hinterlegt.</div>`;
     return;
   }
-  const {f, cr, cruiseAlt, auto, climbAuto, climbMin, climbL, climbRate, climbHint, appMin, altnOverride, altnMin, frfMin, cruiseMin, TAXI, cruiseL, appL, altnL, frfL, mfr, fob, extra, safeMin} = FC;
+  const {f, cr, cruiseAlt, auto, climbAuto, climbMin, climbL, climbRate, climbHint, appMin, altnOverride, altnMin, frfMin, addMin, addL, cruiseMin, TAXI, cruiseL, appL, altnL, frfL, mfr, fob, extra, safeMin} = FC;
   const f1 = v => v == null ? "–" : (Math.round(v*10)/10).toLocaleString("de-DE",{minimumFractionDigits:1,maximumFractionDigits:1});
   const row = (ph, tm, rate, lit, hint) =>
     `<tr><td>${ph}${hint?` <small style="color:var(--mut)">${hint}</small>`:""}</td>`+
@@ -3866,7 +3871,7 @@ function renderFuel(ac, tripMin, altnAutoMin, issues){
   if (extra != null && !INC)
     checks += li(extra >= 0, extra >= 0
       ? `Vorrat ≥ Mindest-Kraftstoffbedarf — Extra-Kraftstoff ${f1(extra)} l`
-      : `Vorrat liegt ${f1(-extra)} l UNTER dem Mindest-Kraftstoffbedarf — Flug so nicht antreten (OM-A 3.2.4)`);
+      : `Vorrat liegt ${f1(-extra)} l UNTER dem Mindest-Kraftstoffbedarf — Flug so nicht antreten (OM-C 3.2.4)`);
   const safeTxt = safeMin == null ? "–" : `${fmtT(safeMin)} h`;
   box.innerHTML = `
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
@@ -3887,6 +3892,7 @@ function renderFuel(ac, tripMin, altnAutoMin, issues){
       ${row("An- &amp; Abflug", appMin, cr, appL)}
       ${row("Alternate", altnMin, cr, altnL, altnOverride?"":"aus Alternate-Leg")}
       ${row("Final Reserve ("+(f.res==="night"?"VFR Nacht/IFR":"VFR Tag")+")", frfMin, cr, frfL)}
+      ${row("Zusatzreserve (Additional Reserve)", addMin, cr, addL, "bei Verzögerungen nutzbar")}
       <tr><td><b>Mindest-Kraftstoffbedarf</b></td><td></td><td></td><td class="calc${INC?" incl":""}"><b>${INC ? "unvollständig" : f1(mfr) + " l"}</b></td></tr>
       <tr><td>Kraftstoff-Vorrat (Fuel On Board)</td><td></td><td></td><td class="calc">${f1(fob)} l</td></tr>
       <tr><td>Extra-Kraftstoff</td><td></td><td></td><td class="calc${INC?" incl":""}">${INC ? "–" : f1(extra) + " l"}</td></tr>
@@ -3895,7 +3901,7 @@ function renderFuel(ac, tripMin, altnAutoMin, issues){
         return tas != null ? `<tr><td>Reichweite <small style="color:var(--mut)">Nullwind, ${state.pwr} ${ac.cruise.unit}${cruiseAlt!=null?" in "+fmt0(cruiseAlt)+" ft":""}</small></td><td></td><td></td><td class="calc">${fmt0(safeMin/60*tas)} NM</td></tr>` : ""; })()}
     </tbody></table></div>
     ${checks ? `<ul class="chk">${checks}</ul>` : ""}`}
-    <details class="hnt" style="margin-top:10px"><summary>Berechnungsgrundlage (OM-A 3.2.4 &amp; Quellen)</summary><div class="wb-note">OM-A 3.2.4: Pauschale Anlassen/Rollen ${TAXI} l (musterbezogen), An-/Abflug mindestens 10 min, Final Reserve 30 min (VFR Tag) bzw. 45 min (VFR Nacht/IFR) — jeweils mit Reiseflug-Verbrauchsrate der gewählten Leistungseinstellung (${state.pwr} ${ac.cruise.unit}). ${ac.fuelFlow.src}${ac.climb ? " Steigflug: " + ac.climb.src + "." : ""}</div></details>`;
+    <details class="hnt" style="margin-top:10px"><summary>Berechnungsgrundlage (OM-C 3.2.4 &amp; Quellen)</summary><div class="wb-note">OM-C 3.2.4: Pauschale Anlassen/Rollen ${TAXI} l (musterbezogen), An-/Abflug mindestens 10 min, Final Reserve 30 min (VFR Tag) bzw. 45 min (VFR Nacht/IFR), <b>zuzüglich Zusatzreserve 30 min (bei Verzögerungen nutzbar)</b> — jeweils mit Reiseflug-Verbrauchsrate der gewählten Leistungseinstellung (${state.pwr} ${ac.cruise.unit}). ${ac.fuelFlow.src}${ac.climb ? " Steigflug: " + ac.climb.src + "." : ""}</div></details>`;
 }
 
 
@@ -4111,14 +4117,14 @@ function buildKneeSheet(){
   else if (INC) fu += `<div class="warn">✘ Bedarf nicht ermittelt — Flugplan unvollständig</div>`;
   else {
     /* nur die Übersicht — die Soll-Werte stehen links an jedem Wegpunkt */
-    fu += `<div class="kv">Vorrat <b>${f1(F0)} l</b> · Mindest <b>${f1(FC.mfr)} l</b> · Extra <b>${f1(FC.extra)} l</b> · Reserve <b>${f1(FC.frfL)} l</b></div>`;
+    fu += `<div class="kv">Vorrat <b>${f1(F0)} l</b> · Mindest <b>${f1(FC.mfr)} l</b> · Extra <b>${f1(FC.extra)} l</b> · FRF <b>${f1(FC.frfL)} l</b> · Zusatz <b>${f1(FC.addL)} l</b></div>`;
   }
   R += fu + `</div>`;
   const bad = (W.checks || []).filter(c => !c.ok && !c.info);
   R += `<div class="blk"><div class="bh"><span>Masse &amp; Schwerpunkt</span></div><div class="kv">TOM <b>${W.tom != null ? f1(W.tom) : "–"} kg</b> · LDM ${W.ldm != null ? f1(W.ldm) : "–"} kg · ZFM ${W.zfmM ? f1(W.zfmM) : "–"} kg${ac.ballast && state.wb.ballast ? ` · <b>Ballast ${ac.ballast.kg} kg</b>` : ""} ${bad.length ? "" : "✔"}</div>` +
        bad.map(c => `<div class="warn">✘ ${esc(c.txt)}</div>`).join("") + `</div>`;
   R += `<div class="sq">Squawk <span class="b m"></span><span class="emg">7700 · 7600 · 7500 · 121,5</span></div>`;
-  R += `<div class="ft">${esc(state.callsign)} · ${esc(ac.type)} — FCY FlightLog ${BUILD}</div>`;
+  R += `<div class="ft">${esc(state.callsign)} · ${esc(ac.type)} — OM App. 5.7 · ${esc(OM_REV)} · Build ${BUILD}</div>`;
   /* Mitschreibzeilen oben: so viele, wie unter der Infospalte frei bleibt (Schätzung in mm, eher knapp) */
   let usedR = 23 + 23 + 13 + 10 + 12 + 4.2*bad.length + 7 + 3;   /* Schätzung; beim Drucken misst kneeFit nach */
   let rTight = "";
@@ -4281,8 +4287,8 @@ function buildPrintSheet(){
   const FC = calcFuel(ac, totMin, ca.min);
   const safeTxt = FC && FC.safeMin != null ? `${fmtT(FC.safeMin)} h` : "–";
   const ISSp = navIssues(calcs, ca);
-  const fuelTxt = (FC && ISSp.length) ? `<b>✘ Kraftstoff (OM-A 3.2.4): Flugplan UNVOLLSTÄNDIG — Mindestbedarf nicht ermittelt:</b> ${esc(ISSp.join(" · "))}`
-    : FC ? `Kraftstoff (OM-A 3.2.4): Mindestbedarf <b>${f1(FC.mfr)} l</b> — Rollen ${f1(FC.TAXI)} · Steigflug ${f1(FC.climbLAll)} · Reise ${f1(FC.cruiseL)} · An-/Abflug ${f1(FC.appL)} · Alternate ${f1(FC.altnL)} · Final Reserve ${f1(FC.frfL)} (${FC.frfMin} min) — Vorrat ${f1(FC.fob)} l · Extra ${f1(FC.extra)} l · Sichere Flugzeit ${safeTxt} (${state.pwr} ${ac.cruise?ac.cruise.unit:""})` : "";
+  const fuelTxt = (FC && ISSp.length) ? `<b>✘ Kraftstoff (OM-C 3.2.4): Flugplan UNVOLLSTÄNDIG — Mindestbedarf nicht ermittelt:</b> ${esc(ISSp.join(" · "))}`
+    : FC ? `Kraftstoff (OM-C 3.2.4): Mindestbedarf <b>${f1(FC.mfr)} l</b> — Rollen ${f1(FC.TAXI)} · Steigflug ${f1(FC.climbLAll)} · Reise ${f1(FC.cruiseL)} · An-/Abflug ${f1(FC.appL)} · Alternate ${f1(FC.altnL)} · Final Reserve ${f1(FC.frfL)} (${FC.frfMin} min) · Zusatzreserve ${f1(FC.addL)} l (${FC.addMin} min) — Vorrat ${f1(FC.fob)} l · Extra ${f1(FC.extra)} l · Sichere Flugzeit ${safeTxt} (${state.pwr} ${ac.cruise?ac.cruise.unit:""})` : "";
   const ttTxt = tocTodText(TTp, h);
   /* Platzrunden/Airwork: in Total Time und Kraftstoff enthalten — hier ausdrücklich aufführen */
   const exParts = [];
@@ -4301,7 +4307,7 @@ function buildPrintSheet(){
       <td class="ps-lbl" colspan="2" style="text-align:center">inkl. Alternate</td><td rowspan="2" class="nb"></td><td class="ps-lbl" colspan="2" style="text-align:center">inkl. Alternate</td><td colspan="3" rowspan="2" class="ps-notes"></td></tr>
     <tr><td class="tv" colspan="2">${(totDist||ca.dist)?fmt0(totDist+(ca.dist||0)):"–"} NM</td><td class="tv" colspan="2">${fmtT((totMin||0)+(ca.min||0)||null)}</td></tr>`;
   out += `</tbody></table>`;
-  out += `<div class="ps-foot">FlyCademy GmbH · ATO DE.ATO.242 · FCY FlightLog ${BUILD} — Werte gegen AFM/OM prüfen · METAR/TAF: api.met.no · Höhenwinde: Open-Meteo (DWD ICON)</div>`;
+  out += `<div class="ps-foot">FlyCademy GmbH · ATO DE.ATO.242 · OM Appendix 5.7 · ${esc(OM_REV)} · Build ${BUILD} — Werte gegen AFM/OM prüfen · METAR/TAF: api.met.no · Höhenwinde: Open-Meteo (DWD ICON)</div>`;
   out += buildPrintPage2();
   return out;
 }
@@ -4453,7 +4459,7 @@ function buildPrintPage2(){
   }
   /* Kraftstoffplanung */
   const FC = calcFuel(ac, totMin, ca.min);
-  let fu = `<div class="ps-sub">Kraftstoffplanung (OM-A 3.2.4)</div>`;
+  let fu = `<div class="ps-sub">Kraftstoffplanung (OM-C 3.2.4)</div>`;
   if (!FC){
     fu += `<div class="ps-ck">keine Verbrauchsdaten hinterlegt</div>`;
   } else {
@@ -4470,6 +4476,7 @@ function buildPrintPage2(){
     fu += row("An- &amp; Abflug", FC.appMin, FC.cr, FC.appL);
     fu += row("Alternate", FC.altnMin, FC.cr, FC.altnL);
     fu += row(`Final Reserve (${FC.f.res==="night"?"VFR Nacht/IFR":"VFR Tag"})`, FC.frfMin, FC.cr, FC.frfL);
+    fu += row("Zusatzreserve (Additional Reserve)", FC.addMin, FC.cr, FC.addL, "bei Verzögerungen nutzbar");
     const INC = CORE.issues.length > 0;
     fu += `<tr><td class="ps-lbl">Mindest-Kraftstoffbedarf</td><td></td><td></td><td class="tv">${INC ? "UNVOLLST." : f1(FC.mfr) + " l"}</td></tr>`;
     fu += `<tr><td style="text-align:left">Kraftstoff-Vorrat (FOB)</td><td></td><td></td><td>${f1(FC.fob)} l</td></tr>`;
