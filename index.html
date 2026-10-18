@@ -232,6 +232,11 @@ table.fueltbl td small{white-space:normal}
   .legend .chip{display:inline-block;width:22px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:5px;border:1px solid var(--mut)}
   .chip.in{background:var(--panel)} .chip.out{background:var(--calc-bg)}
   .addleg{margin-top:10px}
+  small.gal{color:var(--mut);white-space:nowrap;font-weight:400}
+  small.galhint{display:block;margin-top:3px;font-size:11px}
+  small.galhint[hidden]{display:none}
+  tfoot tr.addrow td{background:transparent;padding:6px 6px;text-align:left;font:inherit;border-bottom:1px solid var(--line)}
+  .addlegbtn{position:sticky;left:6px;font-size:13px;padding:4px 12px}
   .duo{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   @media (max-width:820px){.duo{grid-template-columns:1fr}}
   .wb-note{background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:10px 12px;font-size:13px;margin-top:12px}
@@ -325,6 +330,31 @@ table.fueltbl td small{white-space:normal}
   #printSheet .tv{font-weight:600}
   #printSheet .ps-foot{border:none;text-align:left;font-size:6.3pt;color:#333;padding:1mm 0 0}
   #printSheet .ps-p2{page-break-before:always}
+  #printSheet .ps-fold{position:relative;height:4mm}
+  #printSheet .ps-grid tr.ps-hr td{height:7.2mm}
+  #printSheet .ps-grid td.ps-f{text-align:left;vertical-align:top;padding:.3mm 1.2mm 0}
+  #printSheet .ps-grid td.ps-f small{display:block;font-size:5.8pt;font-weight:600;color:#444;line-height:1.1}
+  #printSheet .ps-grid td.ps-f span{display:block;text-align:center;font-size:8.5pt;line-height:1.25}
+  #printSheet .ps-grid td.ps-title{font-size:14pt;vertical-align:bottom;padding-bottom:.6mm}
+  #printSheet .ps-grid td.ps-cs{text-align:left;border:none;font-size:8pt;padding-left:0}
+  #printSheet .ps-grid td.ps-v{font-weight:600}
+  #printSheet .ps-grid td.ps-wr{text-align:left;vertical-align:top}
+  #printSheet .ps-grid td.ps-wr small{font-size:5.8pt;font-weight:600;color:#333}
+  #printSheet .ps-grid tr.ps-gap td{height:1.6mm;border:none;padding:0}
+  #printSheet .ps-grid tr.ps-ln td{height:4.6mm}
+  #printSheet .ps-grid td.ps-line{border:none;border-bottom:.5pt solid #555}
+  #printSheet .ps-grid td.ps-x{position:relative;padding:0}
+  #printSheet .ps-grid td.ps-x svg{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+  #printSheet .ps-grid td.ps-clrl{border:none;text-align:left;vertical-align:top;font-size:7pt;padding-left:0}
+  #printSheet .ps-grid tr.ps-ar td{height:5.4mm}
+  #printSheet .ps-grid tr.ps-ar td.ps-lbl{font-size:6.6pt}
+  #printSheet .ps-grid tr.ps-tot td{height:8mm}
+  #printSheet .ps-grid tr.ps-alt td{height:4.6mm}
+  #printSheet .ps-grid tr.ps-alt td.ps-lbl,#printSheet .ps-grid tr.ps-tot td.ps-lbl{font-size:6.8pt}
+  #printSheet .ps-grid td.ps-foot{text-align:left;vertical-align:top;padding:1mm 1px 0;font-size:6pt}
+  #printSheet .ps-fold i{position:absolute;top:0;bottom:0;width:0}
+  #printSheet .ps-fold .fz{border-left:1.2pt solid #000}
+  #printSheet .ps-fold .fk{border-left:1.2pt dashed #000}
   /* Kniebrett-Log — A5 hoch, Falz auf A6 */
   #printSheet .ps-kh{font-size:9pt;border-bottom:1.2pt solid #000;padding-bottom:1mm;margin-bottom:1.5mm;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap}
   #printSheet .ps-kt{font-size:12pt;font-weight:700;margin-right:2mm}
@@ -1128,7 +1158,7 @@ html.mapfs-lock,html.mapfs-lock body{overflow:hidden}
       <div class="field"><label for="dep">DEP</label><input id="dep" maxlength="4" placeholder="EDVE"></div>
       <div class="field"><label for="dest">DEST</label><input id="dest" maxlength="4"></div>
       <div class="field"><label for="altn">ALTN</label><input id="altn" maxlength="4"></div>
-      <div class="field"><label for="circN" title="Platzrunden am Zielplatz vor der Landung — mit Reiseverbrauch gerechnet. Reiner Platzrundenflug: DEP = DEST, keine Strecke.">Platzrunden</label><div class="exin" title="Anzahl × Minuten je Runde, am Zielplatz vor der Landung"><input id="circN" data-ex="circN" inputmode="numeric" placeholder="0" aria-label="Anzahl Platzrunden"><span>×</span><input id="circMin" data-ex="circMin" inputmode="decimal" placeholder="10" aria-label="Minuten je Platzrunde"><span>min</span></div></div>
+      <div class="field"><label for="circN" title="Platzrunden am Zielplatz vor der Landung — mit Reiseverbrauch, mindestens 10 min je Runde (OM-C 3.2.4). Reiner Platzrundenflug: DEP = DEST, keine Strecke.">Platzrunden</label><div class="exin" title="Anzahl × Minuten je Runde, am Zielplatz vor der Landung"><input id="circN" data-ex="circN" inputmode="numeric" placeholder="0" aria-label="Anzahl Platzrunden"><span>×</span><input id="circMin" data-ex="circMin" inputmode="decimal" placeholder="10" aria-label="Minuten je Platzrunde"><span>min</span></div></div>
       <div class="field"><label for="prep">Prep. by</label><input id="prep"></div>
       <div class="field"><label for="pic">PIC / Sign</label><input id="pic"></div>
       <div class="field"><label for="etd">ETD <small>(UTC)</small></label><input id="etd" placeholder="hh:mm"></div>
@@ -1165,7 +1195,7 @@ html.mapfs-lock,html.mapfs-lock body{overflow:hidden}
   </section>
 
   <section>
-    <h2>Navigation Log <button type="button" class="qm" data-help="Helle Zellen ausfüllen — graue Zellen sind berechnet oder gesperrt. Leere ALT-Zellen erben die Höhe des vorigen Legs (Platzhalter), TAS folgt aus der Reiseflugtabelle. Tastatur: Pfeiltasten wechseln zwischen den Zellen (links/rechts, wenn der Cursor am Textrand steht), Enter springt eine Zeile nach unten.">?</button> <button id="btnAddLeg" class="hbt" type="button">+ Leg hinzufügen</button></h2>
+    <h2>Navigation Log <button type="button" class="qm" data-help="Helle Zellen ausfüllen — graue Zellen sind berechnet oder gesperrt. Leere ALT-Zellen erben die Höhe des vorigen Legs (Platzhalter), TAS folgt aus der Reiseflugtabelle. Tastatur: Pfeiltasten wechseln zwischen den Zellen (links/rechts, wenn der Cursor am Textrand steht), Enter springt eine Zeile nach unten.">?</button></h2>
     <div class="mapwrap">
     <div id="mapBox" style="display:none;margin-top:4px"></div>
     <div id="mapHint" class="wx-hint" hidden style="margin-top:8px"></div>
@@ -1196,6 +1226,7 @@ html.mapfs-lock,html.mapfs-lock body{overflow:hidden}
         </thead>
         <tbody id="legBody"></tbody>
         <tfoot>
+          <tr class="addrow"><td colspan="18"><button id="btnAddLeg" class="addlegbtn" type="button" title="Neues Leg am Routenende anhängen — das bisherige letzte Leg endet dann an einem Zwischenpunkt">+ Leg hinzufügen</button></td></tr>
           <tr>
             <td class="lbl" colspan="12">Total</td>
             <td id="totDist">–</td><td></td><td id="totTime">–</td><td colspan="3"></td>
@@ -1254,7 +1285,7 @@ html.mapfs-lock,html.mapfs-lock body{overflow:hidden}
     <h2>Kraftstoffplanung <button type="button" class="qm" data-help="Mindest-Kraftstoffbedarf gemäß OM-C 3.2.4 (NCO.OP.125(c), AMC1 NCO.OP.125(b)). Rollkraftstoff als OM-Pauschale je Muster, Steigflug aus POH-Tabelle bzw. Steigrate.">?</button></h2>
     <div id="fuelBox"></div>
   </section><section>
-    <h2>Mass &amp; Balance <button type="button" class="qm" data-help="Grenzwerte und Arme aus den AFMs (P2008 Ed. 2 Rev. 9, DA 40 D FHB Rev. 6, C182R POH 29.08.1980) · BEM je Luftfahrzeug aus dem Wägebericht. Leeres Feld Kraftstoff Start = Mindestbedarf aus der Kraftstoffplanung.">?</button></h2>
+    <h2>Mass &amp; Balance <button type="button" class="qm" data-help="Grenzwerte und Arme aus den AFMs (P2008 Ed. 2 Rev. 12 (20.10.2023), DA 40 D FHB Rev. 6, C182R POH 29.08.1980) · BEM je Luftfahrzeug aus dem Wägebericht. Leeres Feld Kraftstoff Start = Mindestbedarf aus der Kraftstoffplanung.">?</button></h2>
     <div class="tblwrap">
       <table id="wbTable">
         <thead>
@@ -1265,8 +1296,8 @@ html.mapfs-lock,html.mapfs-lock body{overflow:hidden}
     </div>
     <div id="wbOpts" style="margin-top:12px"></div>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:12px">
-      <div class="field"><label for="fuelTo">Fuel TO (Liter)</label><input id="fuelTo" inputmode="decimal"></div>
-      <div class="field"><label for="fuelLdg">Fuel LDG (Liter) <small>(leer = aus Kraftstoffplanung)</small></label><input id="fuelLdg" inputmode="decimal"></div>
+      <div class="field"><label for="fuelTo">Fuel TO (Liter)</label><input id="fuelTo" inputmode="decimal"><small id="fuelToGal" class="gal galhint" hidden></small></div>
+      <div class="field"><label for="fuelLdg">Fuel LDG (Liter) <small>(leer = aus Kraftstoffplanung)</small></label><input id="fuelLdg" inputmode="decimal"><small id="fuelLdgGal" class="gal galhint" hidden></small></div>
       <div class="field"><label for="fuelDens">Dichte kg/l</label><input id="fuelDens" inputmode="decimal"></div>
       <div class="field"><label for="fuelArm">Fuel-Arm mm</label><input id="fuelArm" inputmode="decimal"></div>
     </div>
@@ -1695,7 +1726,7 @@ var geomagnetism=(()=>{var M=(t,h)=>()=>{try{return h||t((h={exports:{}}).export
 <script>
 "use strict";
 /* ---------- aircraft configuration ----------
-   Quellen: Tecnam P2008JC AFM Ed. 2 Rev. 9 (Basis + Supplement S9),
+   Quellen: Tecnam P2008JC AFM Ed. 2 Rev. 12 (20.10.2023) (Basis + Supplement S9),
    DA 40 D FHB Dok. 6.01.05 Rev. 6. C182R: AFM liegt nur als Scan vor,
    Werte stammen aus der Excel-Vorlage. BEM je LFZ aus dem Wägebericht. */
 const AIRCRAFT = {
@@ -1703,22 +1734,23 @@ const AIRCRAFT = {
     type:"DA40D TDI", climbTas:80, stepRate:700,
     climb:{vy:66, cc:80, k:0.85, rows:[[0,645],[2000,640],[4000,635],[6000,625],[8000,495],[10000,365]],
       src:"FHB 5.3.8 Startsteigflug (Vy 66 KIAS, Klappen T/O, 1150 kg, ISA — Grafik digitalisiert); Reisesteigflug 80 KIAS = Vy-Steigrate × 0,85 (Betreiberansatz; FHB 5.3.9 zeigt bei 73 KIAS/Klappen UP ≈ 0,86 × Vy)"}, fuelArm:2630, density:0.84, taxiL:3,
-    mtow:1150, mlw:1150, maxFuelL:106, aftArm:2590, xwind:{kt:20, src:"FHB 5.3.6"},   /* MÄM 40-123 durchgeführt (18-mm-Fahrwerksblätter) */
+    mtow:1150, mlw:1150, maxFuelL:106, showGal:true, aftArm:2590, xwind:{kt:20, src:"FHB 5.3.6"},   /* MÄM 40-123 durchgeführt (18-mm-Fahrwerksblätter) */
     ballast:{kg:20, arm:3650, share:"Gepäck", label:"Ballast 2 × 10 kg Sandsack (Gepäckraum)"},
-    cruise:{unit:"% Load", default:70, settings:[60,70,80,90,100],
-      data:{"60":[[0,106.2],[2000,107.9],[4000,109.5],[6000,111.2],[8000,112.8],[10000,114.4],[12000,116.1]],
+    cruise:{unit:"% Load", default:70, settings:[60,65,70],
+      data:{"65":[[0,110.7],[2000,112.5],[4000,114.3],[6000,116.1],[8000,118.0],[10000,119.8],[12000,121.7]],
+            "60":[[0,106.2],[2000,107.9],[4000,109.5],[6000,111.2],[8000,112.8],[10000,114.4],[12000,116.1]],
             "70":[[0,115.3],[2000,117.1],[4000,119.1],[6000,121.1],[8000,123.2],[10000,125.3],[12000,127.3]],
             "80":[[0,121.6],[2000,123.5],[4000,125.7],[6000,127.9],[8000,130.2],[10000,132.6],[12000,132.7]],
             "90":[[0,127.8],[2000,129.9],[4000,132.1],[6000,134.6],[8000,137.2],[10000,134.5],[12000,132.8]],
             "100":[[0,133.4],[2000,135.6],[4000,138.1],[6000,140.3],[8000,137.4],[10000,134.5],[12000,132.8]]},
-      src:"FHB 5.3.10, Diagramm digitalisiert (ISA-Standardtemp., 0–12.000 ft; 80/90/100 % oberhalb der Volllastgrenze entlang der Hüllkurve; ±1 kt Ablesegenauigkeit)"},
-    fuelFlow:{climb:29.1, cruise:{"60":15.2,"70":18.3,"80":21.7,"90":25.1,"100":29.1},
-      src:"FHB 5.3.2 Kraftstoffverbrauch (Diagramm digitalisiert; FHB-Beispiel 60 % = 4,0 US gal/h exakt getroffen). Steigflug = Leistungshebel MAX ≙ 100 % Load (29,1 l/h)."},
+      src:"FHB 5.3.10, Diagramm digitalisiert (ISA-Standardtemp., 0–12.000 ft; ±1 kt Ablesegenauigkeit) · FlyCademy-Stufen 60/65/70 %, 65 % linear zwischen 60 und 70 %"},
+    fuelFlow:{climb:29.1, cruise:{"60":15.2,"65":16.8,"70":18.3,"80":21.7,"90":25.1,"100":29.1},
+      src:"FHB 5.3.2 Kraftstoffverbrauch (Diagramm digitalisiert; FHB-Beispiel 60 % = 4,0 US gal/h exakt getroffen; 65 % linear zwischen 60 und 70 %, aufgerundet). Steigflug: Leistungshebel MAX, ab 300 ft AAL ca. 80 % Load (TM Anhang B); geplant mit 100 % Load = 29,1 l/h (konservativ)."},
     perf:{
-      to:{nomo:true, charts:["to_roll","to_15m"], wbKey:"tom", basis:"Asphalt (eben, trocken)", alt:"Gras (5–10 cm)", temps:[-30,50], factor:1.25,
-        note:"FHB 5.3.7 Startstrecke (Nomogramme 5-11/5-12) · vR 59 KIAS, über 15 m 66 KIAS · Klappen T/O · Masse automatisch aus M&B · FHB ohne Sicherheitsfaktor — Betreiberzuschlag F 1,25 vorbelegt"},
-      ldg:{nomo:true, charts:["ldg_roll","ldg_15m"], wbKey:"ldm", basis:"Asphalt (eben, trocken)", alt:"Gras (5–10 cm)", temps:[-30,50], factor:1.43,
-        note:"FHB 5.3.11 Landestrecke (Nomogramme 5-20/5-21, digitalisiert und an den FHB-Beispielen kalibriert) · Anflug 71 KIAS, Klappen LDG · Rückenwind: keine FHB-Daten · Masse automatisch aus M&B · Betreiberzuschlag F 1,43 vorbelegt"}
+      to:{nomo:true, charts:["to_roll","to_15m"], wbKey:"tom", basis:"Asphalt", alt:"Gras (bis 20 cm)", temps:[-30,50], factor:1.33,
+        note:"FHB 5.3.7 Startstrecke (Nomogramme 5-11/5-12) · vR 59 KIAS, über 15 m 66 KIAS · Klappen T/O · Masse automatisch aus M&B · FHB ohne Sicherheitsfaktor — F 1,33 nach OM-C 3.1"},
+      ldg:{nomo:true, charts:["ldg_roll","ldg_15m"], wbKey:"ldm", basis:"Asphalt", alt:"Gras (bis 20 cm)", temps:[-30,50], factor:1.43,
+        note:"FHB 5.3.11 Landestrecke (Nomogramme 5-20/5-21, neu digitalisiert 17.10.2026 — ISA, MSL, 1150 kg: 744 m / 287 m wie FHB-Text; FHB-Beispiel 500 m / 196 m) · Anflug 71 KIAS, Klappen LDG · Rückenwind: keine FHB-Daten · Masse automatisch aus M&B · F 1,43 nach OM-C 3.1"}
     },
     perfNote:"Das DA 40 D FHB stellt Start- (5.3.7) und Landestrecke (5.3.11) als Nomogramme dar (Seiten 5-11/5-12 bzw. 5-20/5-21). Anhaltswerte (ISA, MSL, 1150 kg, Asphalt): Landerollstrecke 287 m, über 15 m 744 m; Klappen UP (Notfall, 5.3.12): 916 m über 15 m, Rollstrecke 304 m. Gras (trocken, kurz) laut FHB: Start +10 % Rollstrecke (Gras bis 5 cm), +15 % (5–10 cm), ≥ +25 % (> 10 cm); Landung +10 % / +15 % / ≥ +25 %. Neigung: 2 % Steigung ≈ +10 % Startstrecke, 2 % Gefälle ≈ +10 % Landestrecke. vR 59 KIAS, Start 66 KIAS, Anflug 71 KIAS (je 1150 kg).",
     env:{ massMin:780, fwd:[[780,2400],[980,2400],[1150,2460]] },
@@ -1737,19 +1769,19 @@ const AIRCRAFT = {
     climb:{vy:67, cc:78, k:0.85, rows:[[0,679],[2000,600],[4000,517],[6000,433],[8000,349],[10000,266]],
       src:"AFMS S9 MT5-11 En-Route Rate of Climb (Vy 67 KIAS, Klappen UP, 650 kg, ISA, inkl. AFM-Faktor × 0,90); Reisesteigflug 78 KIAS = Vy-Steigrate × 0,85 (Betreiberansatz)"}, fuelArm:2209, density:0.72, taxiL:3,
     mtow:650, mlw:650, maxFuelL:120, xwind:{kt:15, src:"AFMS S9 MT5-6"},
-    cruise:{unit:"RPM", default:2100, settings:[1800,1900,2000,2100,2250],
+    cruise:{unit:"RPM", default:2000, settings:[1900,2000,2100],
       data:{"1800":[[0,81],[2000,81],[4000,79],[6000,78]],
             "1900":[[0,88],[2000,87],[4000,86],[6000,85],[8000,84],[10000,82]],
             "2000":[[0,94],[2000,93],[4000,92],[6000,91],[8000,90],[10000,89]],
             "2100":[[0,100],[2000,99],[4000,98],[6000,97],[8000,96],[10000,95]],
             "2250":[[0,109],[2000,108],[4000,106],[6000,105],[8000,104],[10000,103]]},
       src:"AFM Supplement S9, Seiten MT5-12/13 (ISA, 650 kg)"},
-    fuelFlow:{climb:25.8, cruise:{"1800":12.5,"1900":13.7,"2000":15.3,"2100":17.4,"2250":21.3},
-      src:"AFM Kap. 5.10 Cruise Performance (630 kg, Meereshöhe — konservativ, in der Höhe geringer). Steigflug = höchster AFM-Wert 2388 Prop-RPM (25,8 l/h); je +15 °C OAT ca. −2,5 % Verbrauch."},
+    fuelFlow:{climb:27.7, cruise:{"1800":15.9,"1900":17.6,"2000":19.5,"2100":22.1,"2250":25.8},
+      src:"AFMS S9 MT5-12/13 Cruise Performance (650 kg, MTV-34; Meereshöhe ISA — konservativ, in der Höhe geringer). Steigflug = höchster AFMS-Wert 2388 Prop-RPM (27,7 l/h); je +15 °C OAT ca. −2,5 % Verbrauch."},
     perf:{
       to:{basis:"Gras",alt:"Asphalt",altPct:-0.10,temps:[-25,0,25,50],unitFt:false,grid:{"0": [[149, 262], [187, 328], [231, 401], [280, 484]], "1000": [[162, 285], [204, 356], [252, 437], [306, 526]], "2000": [[177, 311], [223, 388], [275, 475], [334, 572]], "3000": [[193, 338], [244, 422], [301, 517], [365, 623]], "4000": [[211, 368], [266, 460], [328, 564], [398, 679]], "5000": [[231, 402], [291, 502], [359, 614], [436, 740]], "6000": [[253, 438], [319, 547], [393, 670], [477, 808]], "7000": [[277, 478], [349, 597], [430, 732], [522, 882]], "8000": [[304, 522], [382, 652], [472, 799], [572, 963]], "9000": [[333, 571], [419, 713], [517, 874], [627, 1053]], "10000": [[365, 624], [460, 780], [567, 956], [688, 1152]]},
-        windMode:"abs",windHead:-5,windTail:15,tailMax:null,slopePct:0.07,factor:1.10,
-        note:"AFM S9 MT5-7 (650 kg, MTV-34) · Lift-off 48–50 KIAS, über 50 ft 60–61 KIAS · Basis Gras, eben, MTOW"},
+        windMode:"abs",windHead:-5,windTail:15,tailMax:null,slopePct:0.07,factor:1.33,
+        note:"AFM S9 MT5-7 (650 kg, MTV-34) · Klappen T/O · Lift-off 48–50 KIAS, über 50 ft 60–61 KIAS · Basis Gras, eben, MTOW"},
       ldg:{basis:"Gras",alt:"Asphalt",altPct:-0.10,temps:[-25,0,25,50],unitFt:false,grid:{"0": [[149, 358], [164, 373], [179, 388], [194, 403]], "1000": [[154, 363], [170, 379], [186, 395], [201, 410]], "2000": [[160, 369], [176, 385], [192, 401], [209, 418]], "3000": [[166, 375], [183, 392], [200, 409], [216, 425]], "4000": [[172, 381], [190, 399], [207, 416], [225, 434]], "5000": [[179, 388], [197, 406], [215, 424], [233, 442]], "6000": [[186, 395], [205, 414], [223, 432], [242, 451]], "7000": [[193, 402], [212, 421], [232, 441], [251, 460]], "8000": [[200, 410], [221, 430], [241, 450], [261, 470]], "9000": [[208, 417], [229, 438], [250, 459], [271, 480]], "10000": [[217, 426], [238, 447], [260, 469], [282, 491]]},
         windMode:"abs",windHead:-4,windTail:13,tailMax:null,slopePct:-0.03,factor:1.67,
         note:"AFM Landing Performance · Anflug 54 KIAS, Flaps LAND, Idle · Basis Gras, eben"}
@@ -1761,26 +1793,26 @@ const AIRCRAFT = {
       {name:"Copilot", mass:0, arm:1800},
       {name:"Gepäck (max 20 kg)", mass:0, arm:2417, max:20}
     ],
-    note:"AFM P2008JC Ed. 2 Rev. 9 mit Supplement S9 (MTV-34, MTOW-Erhöhung): MTOW 650 kg, CG 1841–1978 mm, Arme Sitze 1800 / Tank 2209 / Gepäck 2417 mm, ausfliegbar 120 l, Dichte 0,72 kg/l (MOGAS/AVGAS 100LL). BEM 429,0 kg / CG 1852,0 mm aus Wägebericht 1200-JC/21 vom 29.01.2021 (s/n 1200)."
+    note:"AFM P2008JC Ed. 2 Rev. 12 (20.10.2023) mit Supplement S9 (MTV-34, MTOW-Erhöhung): MTOW 650 kg, CG 1841–1978 mm, Arme Sitze 1800 / Tank 2209 / Gepäck 2417 mm, ausfliegbar 120 l, Dichte 0,72 kg/l (UL 91, MOGAS/AVGAS 100LL). BEM 429,0 kg / CG 1852,0 mm aus Wägebericht 1200-JC/21 vom 29.01.2021 (s/n 1200)."
   },
   "D-EGYY": {
     type:"Tecnam P2008JC · GT-Propeller", climbTas:70, stepRate:700,
     climb:{vy:71, cc:78, k:0.9, rows:[[0,730],[2000,649],[4000,568],[6000,487],[8000,406],[10000,326]],
       src:"AFM 5-11 En-Route Rate of Climb (Vy 71 KIAS, Klappen UP, 630 kg, ISA, inkl. AFM-Faktor × 0,90); Reisesteigflug 78 KIAS = Vy-Steigrate × 0,90 (Betreiberansatz, nur +7 kt über Vy)"}, fuelArm:2209, density:0.72, taxiL:3,
     mtow:630, mlw:630, maxFuelL:120, xwind:{kt:15, src:"AFM 5-6"},
-    cruise:{unit:"RPM", default:2100, settings:[1800,1900,2000,2100,2250],
+    cruise:{unit:"RPM", default:2000, settings:[1900,2000,2100],
       data:{"1800":[[0,78],[2000,76],[4000,75],[6000,73]],
             "1900":[[0,85],[2000,83],[4000,82],[6000,80],[8000,78],[10000,76]],
             "2000":[[0,92],[2000,90],[4000,89],[6000,87],[8000,85],[10000,84]],
             "2100":[[0,99],[2000,98],[4000,96],[6000,94],[8000,93],[10000,91]],
             "2250":[[0,110],[2000,108],[4000,107],[6000,105],[8000,103]]},
-      src:"AFM Ed. 2 Rev. 9, Seiten 5-12/13 (ISA, 630 kg)"},
+      src:"AFM Ed. 2 Rev. 12 (20.10.2023), Seiten 5-12/13 (ISA, 630 kg)"},
     fuelFlow:{climb:25.8, cruise:{"1800":12.5,"1900":13.7,"2000":15.3,"2100":17.4,"2250":21.3},
       src:"AFM Kap. 5.10 Cruise Performance (630 kg, Meereshöhe — konservativ, in der Höhe geringer). Steigflug = höchster AFM-Wert 2388 Prop-RPM (25,8 l/h); je +15 °C OAT ca. −2,5 % Verbrauch."},
     perf:{
       to:{basis:"Gras",alt:"Asphalt",altPct:-0.10,temps:[-25,0,25,50],unitFt:false,grid:{"0": [[157, 265], [198, 331], [244, 406], [296, 490]], "1000": [[172, 289], [216, 361], [267, 442], [323, 533]], "2000": [[187, 314], [236, 392], [291, 481], [353, 580]], "3000": [[205, 342], [258, 427], [318, 524], [386, 631]], "4000": [[224, 373], [281, 466], [347, 571], [421, 688]], "5000": [[244, 406], [308, 508], [380, 622], [461, 750]], "6000": [[268, 443], [337, 554], [416, 679], [504, 819]], "7000": [[293, 484], [369, 605], [455, 741], [552, 894]], "8000": [[321, 529], [404, 661], [499, 810], [605, 977]], "9000": [[352, 578], [443, 722], [547, 885], [663, 1068]], "10000": [[386, 632], [486, 790], [600, 969], [728, 1168]]},
-        windMode:"abs",windHead:-5,windTail:15,tailMax:null,slopePct:0.07,factor:1.10,
-        note:"AFM 5-7 (630 kg) · Lift-off 48–50 KIAS, über 50 ft 60–61 KIAS · Basis Gras, eben, MTOW"},
+        windMode:"abs",windHead:-5,windTail:15,tailMax:null,slopePct:0.07,factor:1.33,
+        note:"AFM 5-7 (630 kg) · Klappen T/O · Lift-off 48–50 KIAS, über 50 ft 60–61 KIAS · Basis Gras, eben, MTOW"},
       ldg:{basis:"Gras",alt:"Asphalt",altPct:-0.10,temps:[-25,0,25,50],unitFt:false,grid:{"0": [[149, 358], [164, 373], [179, 388], [194, 403]], "1000": [[154, 363], [170, 379], [186, 395], [201, 410]], "2000": [[160, 369], [176, 385], [192, 401], [209, 418]], "3000": [[166, 375], [183, 392], [200, 409], [216, 425]], "4000": [[172, 381], [190, 399], [207, 416], [225, 434]], "5000": [[179, 388], [197, 406], [215, 424], [233, 442]], "6000": [[186, 395], [205, 414], [223, 432], [242, 451]], "7000": [[193, 402], [212, 421], [232, 441], [251, 460]], "8000": [[200, 410], [221, 430], [241, 450], [261, 470]], "9000": [[208, 417], [229, 438], [250, 459], [271, 480]], "10000": [[217, 426], [238, 447], [260, 469], [282, 491]]},
         windMode:"abs",windHead:-4,windTail:13,tailMax:null,slopePct:-0.03,factor:1.67,
         note:"AFM Landing Performance · Anflug 54 KIAS, Flaps LAND, Idle · Basis Gras, eben"}
@@ -1792,35 +1824,37 @@ const AIRCRAFT = {
       {name:"Copilot", mass:0, arm:1800},
       {name:"Gepäck (max 20 kg)", mass:0, arm:2417, max:20}
     ],
-    note:"AFM P2008JC Ed. 2 Rev. 9 (Basiskonfiguration, GT-2/173-Propeller): MTOW 630 kg, CG 1841–1978 mm, Arme Sitze 1800 / Tank 2209 / Gepäck 2417 mm, ausfliegbar 120 l, Dichte 0,72 kg/l (MOGAS/AVGAS 100LL). BEM 416,0 kg / CG 1887,7 mm aus Wägebericht 1010-JC/13 vom 25.10.2013 (s/n 1010) — nach Umrüstungen neu wägen."
+    note:"AFM P2008JC Ed. 2 Rev. 12 (20.10.2023) (Basiskonfiguration, GT-2/173-Propeller): MTOW 630 kg, CG 1841–1978 mm, Arme Sitze 1800 / Tank 2209 / Gepäck 2417 mm, ausfliegbar 120 l, Dichte 0,72 kg/l (UL 91, MOGAS/AVGAS 100LL). BEM 416,0 kg / CG 1887,7 mm aus Wägebericht 1010-JC/13 vom 25.10.2013 (s/n 1010) — nach Umrüstungen neu wägen."
   },
   "D-EPKK": {
     type:"Cessna 182R", climbTas:90, fuelArm:1181.1,
     climb:{vy:80, cc:95, k:0.95, rows:[[0,664],[2000,590],[4000,516],[6000,443],[8000,369],[10000,295]],
-      src:"POH Fig. 5-6 Normal Climb 90 KIAS (3100 lbs, 23 in.Hg/2400 RPM, Standardtemp.) — Steigraten aus den Zeitwerten geglättet, auch für die ersten 300 ft mit Vy 80 KIAS (konservativ); Reisesteigflug 95 KIAS = Tabellenrate × 0,95 (Betreiberansatz)"}, density:0.72, taxiL:7,
+      src:"POH Fig. 5-6 Normal Climb 90 KIAS (3100 lbs, 23 in.Hg/2400 RPM, Standardtemp.) — Steigraten aus den Zeitwerten geglättet, auch für die ersten 300 ft mit Vy 80 KIAS (konservativ); Reisesteigflug 95 KIAS = Tabellenrate × 0,95 (Betreiberansatz)"}, density:0.72, taxiL:7.6,
     climbTable:{rows:[[0,0,0,0],[2000,4,3.8,6],[4000,7,7.9,11],[6000,11,12.1,17],[8000,16,17.0,25],[10000,22,23.1,35]],
       src:"POH Fig. 5-6 Sheet 2 — Normal Climb 90 KIAS (3100 lbs, 2400 RPM / 23 in.Hg, Full Rich, Cowl Flaps Open, Standardtemp.; Zeit/Sprit/Distanz +10 % je 10 °C über ISA; über 5000 ft leanen)"},
-    mtow:1406.1, mlw:1338.1, maxFuelL:333.1, xwind:{kt:15, src:"POH 4-3"}, maxRamp:1410.7,   /* POH: max. Rollmasse 3110 lbs */
-    cruise:{unit:"% BHP", default:65, settings:[55,60,65,70,75],
+    mtow:1406.1, mlw:1338.1, maxFuelL:333.1, showGal:true, xwind:{kt:15, src:"POH 4-3"}, maxRamp:1410.7,   /* POH: max. Rollmasse 3110 lbs */
+    cruise:{unit:"% BHP", default:60, settings:[50,60,70], labels:{"70":"70 % BHP (fast)","60":"60 % BHP (eco)","50":"50 % BHP"},
       data:{"55":[[2000,116],[4000,119],[6000,120],[8000,122]],
             "60":[[2000,122],[4000,124],[6000,126],[8000,128]],
             "65":[[2000,126],[4000,129],[6000,130],[8000,133]],
             "70":[[2000,131],[4000,133],[6000,135],[8000,137]],
-            "75":[[2000,134],[4000,136],[6000,139],[8000,141]]},
-      src:"POH Fig. 5-7 Sheets 1–4 (Standardtemp., 3100 lbs, lean; 2000–8000 ft, darüber konstant)"},
-    fuelFlow:{climb:68.1, cruise:{"55":36.0,"60":39.0,"65":42.0,"70":45.4,"75":48.8},
-      src:"POH Fig. 5-7 (GPH, Standardtemperatur, recommended lean; 1 US gal = 3,785 l) und Fig. 5-6 Normal Climb 90 KIAS (2,1 gal in 7 min ≈ 18 GPH). Anlassen/Rollen/Start laut POH 1,7 US gal (6,4 l) — durch die musterbezogene OM-Pauschale von 7 l abgedeckt; Steigflug je +10 °C über ISA ca. +10 %."},
+            "75":[[2000,134],[4000,136],[6000,139],[8000,141]],
+            "50":[[2000,110],[4000,112],[6000,112],[8000,115]]},
+      src:"POH Fig. 5-7 Sheets 1–4 (Standardtemp., 3100 lbs, lean; 2000–8000 ft, darüber konstant) · FlyCademy-Stufen 50/60/70 % (eco 60, fast 70), alle mit 2300 RPM, Ladedruck je Höhe nach Planungskarte (OM-Anhang 5.18); TAS/Verbrauch nach % BHP aus Fig. 5-7. 50 % steht dort nur bei 2100 RPM (18–19 in.Hg): 2000 ft 110 kt/8,7 GPH, 8000 ft 115 kt/8,8 GPH, 4000/6000 ft interpoliert (abgerundet), Verbrauch 8,8 GPH"},
+    fuelFlow:{climb:68.1, cruise:{"50":33.3,"55":36.0,"60":39.0,"65":42.0,"70":45.4,"75":48.8},
+      src:"POH Fig. 5-7 (GPH, Standardtemperatur, recommended lean; 1 US gal = 3,785 l) und Fig. 5-6 Normal Climb 90 KIAS (2,1 gal in 7 min ≈ 18 GPH). Anlassen/Rollen/Start laut POH 1,7 US gal (6,4 l); geplant 2 US gal = 7,6 l nach Planungskarte (OM-Anhang 5.18, OM-C 3.2.4); Steigflug je +10 °C über ISA ca. +10 %."},
     perf:{
-      to:{basis:"Asphalt (eben, trocken)",alt:"Gras (trocken)",altPct:0.15,temps:[0,10,20,30,40],unitFt:true,grid:{"0": [[720, 1365], [775, 1465], [835, 1570], [895, 1680], [955, 1800]], "1000": [[785, 1490], [845, 1600], [910, 1720], [975, 1845], [1045, 1980]], "2000": [[860, 1635], [925, 1760], [995, 1890], [1065, 2035], [1140, 2185]], "3000": [[940, 1800], [1010, 1940], [1085, 2090], [1165, 2255], [1250, 2430]], "4000": [[1025, 1990], [1105, 2150], [1190, 2320], [1275, 2510], [1370, 2715]], "5000": [[1125, 2210], [1215, 2395], [1305, 2595], [1400, 2815], [1505, 3060]], "6000": [[1235, 2470], [1330, 2685], [1435, 2925], [1540, 3190], [1655, 3490]], "7000": [[1360, 2780], [1465, 3040], [1580, 3330], [1700, 3665], null], "8000": [[1500, 3170], [1615, 3485], [1740, 3855], null, null]},
-        windMode:"rel",windHead:-0.10/9,windTail:0.10/2,tailMax:10,slopePct:null,factor:1.25,
-        note:"POH Fig. 5-4 Short Field (3100 lbs, Flaps 20°, 2400 RPM) · Lift-off 50, über 50 ft 59 KIAS · über 5000 ft PA vor dem Start leanen · '—' = Steigleistung < 150 fpm, Start unzulässig · POH ohne Sicherheitsfaktor — Betreiberzuschlag F 1,25 vorbelegt"},
-      ldg:{basis:"Asphalt (eben, trocken)",alt:"Gras (trocken)",altPct:0.40,temps:[0,10,20,30,40],unitFt:true,grid:{"0": [[560, 1300], [580, 1335], [600, 1365], [620, 1400], [640, 1435]], "1000": [[580, 1335], [600, 1365], [620, 1400], [645, 1440], [665, 1475]], "2000": [[600, 1370], [625, 1405], [645, 1440], [670, 1480], [690, 1515]], "3000": [[625, 1410], [645, 1445], [670, 1485], [695, 1525], [715, 1560]], "4000": [[650, 1450], [670, 1485], [695, 1525], [720, 1565], [740, 1600]], "5000": [[670, 1485], [695, 1525], [720, 1565], [745, 1610], [770, 1650]], "6000": [[700, 1530], [725, 1575], [750, 1615], [775, 1660], [800, 1700]], "7000": [[725, 1575], [750, 1615], [780, 1665], [805, 1710], [830, 1750]], "8000": [[755, 1625], [780, 1665], [810, 1715], [835, 1760], [865, 1805]]},
+      to:{basis:"Asphalt",alt:"Gras",altPct:0.15,temps:[0,10,20,30,40],unitFt:true,grid:{"0": [[720, 1365], [775, 1465], [835, 1570], [895, 1680], [955, 1800]], "1000": [[785, 1490], [845, 1600], [910, 1720], [975, 1845], [1045, 1980]], "2000": [[860, 1635], [925, 1760], [995, 1890], [1065, 2035], [1140, 2185]], "3000": [[940, 1800], [1010, 1940], [1085, 2090], [1165, 2255], [1250, 2430]], "4000": [[1025, 1990], [1105, 2150], [1190, 2320], [1275, 2510], [1370, 2715]], "5000": [[1125, 2210], [1215, 2395], [1305, 2595], [1400, 2815], [1505, 3060]], "6000": [[1235, 2470], [1330, 2685], [1435, 2925], [1540, 3190], [1655, 3490]], "7000": [[1360, 2780], [1465, 3040], [1580, 3330], [1700, 3665], null], "8000": [[1500, 3170], [1615, 3485], [1740, 3855], null, null]},
+        windMode:"rel",windHead:-0.10/9,windTail:0.10/2,tailMax:10,slopePct:null,factor:1.33,
+        flaps:{def:"0", src:"POH Sec. 4, S. 4-16 (Wing Flap Settings): 20° verkürzen Roll- und Gesamtstrecke um etwa 20 %", opts:[["0","0° Normalstart (× 1,25)",1.25],["10","10° (× 1,25 wie 0°, POH ohne Wert)",1.25],["20","20° Kurzstart (POH Fig. 5-4)",1]]},
+        note:"POH Fig. 5-4 Short Field (3100 lbs, Flaps 20°, 2400 RPM) · Lift-off 50, über 50 ft 59 KIAS · Startklappen nach OM-C 3.1: 0° = Fig. 5-4 × 1,25 (POH S. 4-16, vor allen weiteren Korrekturen und vor F), 10° wie 0°, 20° = Fig. 5-4 · über 5000 ft PA vor dem Start leanen · '—' = Steigleistung < 150 fpm, Start unzulässig · POH ohne Sicherheitsfaktor — F 1,33 nach OM-C 3.1"},
+      ldg:{basis:"Asphalt",alt:"Gras",altPct:0.40,temps:[0,10,20,30,40],unitFt:true,grid:{"0": [[560, 1300], [580, 1335], [600, 1365], [620, 1400], [640, 1435]], "1000": [[580, 1335], [600, 1365], [620, 1400], [645, 1440], [665, 1475]], "2000": [[600, 1370], [625, 1405], [645, 1440], [670, 1480], [690, 1515]], "3000": [[625, 1410], [645, 1445], [670, 1485], [695, 1525], [715, 1560]], "4000": [[650, 1450], [670, 1485], [695, 1525], [720, 1565], [740, 1600]], "5000": [[670, 1485], [695, 1525], [720, 1565], [745, 1610], [770, 1650]], "6000": [[700, 1530], [725, 1575], [750, 1615], [775, 1660], [800, 1700]], "7000": [[725, 1575], [750, 1615], [780, 1665], [805, 1710], [830, 1750]], "8000": [[755, 1625], [780, 1665], [810, 1715], [835, 1760], [865, 1805]]},
         windMode:"rel",windHead:-0.10/9,windTail:0.10/2,tailMax:10,slopePct:null,factor:1.43,
-        note:"POH Fig. 5-10 Short Field (2950 lbs, Flaps 40°, Power off, max. Bremsen) · über 50 ft 61 KIAS · kein POH-Sicherheitsfaktor — Betreiberzuschlag F 1,43 vorbelegt"}
+        note:"POH Fig. 5-10 Short Field (2950 lbs, Flaps 40°, Power off, max. Bremsen) · über 50 ft 61 KIAS · kein POH-Sicherheitsfaktor — F 1,43 nach OM-C 3.1"}
     },
     env:{ massMin:816, fwd:[[816,838.2],[1020.6,838.2],[1406.1,1038.9]] }, aftArm:1168.4,
     stations:[
-      {name:"Basic Empty Mass", mass:827.4, arm:952, fixed:true},
+      {name:"Basic Empty Mass", mass:820.5, arm:952.7, fixed:true},
       {name:"Pilot", mass:80, arm:939.8},
       {name:"Copilot", mass:0, arm:939.8},
       {name:"Rücksitzbank", mass:0, arm:1879.6},
@@ -1832,16 +1866,43 @@ const AIRCRAFT = {
       {idx:[4,5,6], max:90.7, label:"Gepäck A+B+C (max. 90,7 kg / 200 lbs)"},
       {idx:[5,6], max:36.3, label:"Gepäck B+C (max. 36,3 kg / 80 lbs)"}
     ],
-    note:"POH C182R vom 29.08.1980 (umgerechnet aus lbs/in): MTOW 3100 lbs (1406 kg), max. Rollmasse 3110 lbs, MLW 2950 lbs (1338 kg). CG: vorn 33,0 in (838 mm) bis 2250 lbs, linear auf 40,9 in (1039 mm) bei 3100 lbs; hinten 46,0 in (1168 mm) bei allen Massen; Bezugsebene Brandschott-Vorderseite. Standardtanks 88 gal ausfliegbar (333 l), AVGAS 6 lbs/gal ≈ 0,72 kg/l, Tank-Arm 46,5 in. Sitze 37 in / Rückbank 74 in, Gepäck A/B/C 97/116/129 in. BEM 827,4 kg = 1824 lbs laut handschriftlichem POH-Eintrag; CG-Arm 952 mm noch aus der Excel-Vorlage (der hochgeladene Section-6-Auszug enthält keinen ausgefüllten Wägebericht) — Arm/Moment mit dem aktuellen Wägebericht abgleichen."
+    note:"POH C182R vom 29.08.1980 (umgerechnet aus lbs/in): MTOW 3100 lbs (1406 kg), max. Rollmasse 3110 lbs, MLW 2950 lbs (1338 kg). CG: vorn 33,0 in (838 mm) bis 2250 lbs, linear auf 40,9 in (1039 mm) bei 3100 lbs; hinten 46,0 in (1168 mm) bei allen Massen; Bezugsebene Brandschott-Vorderseite. Standardtanks 88 gal ausfliegbar (333 l), AVGAS 6 lbs/gal ≈ 0,72 kg/l, Tank-Arm 46,5 in. Sitze 37 in / Rückbank 74 in, Gepäck A/B/C 97/116/129 in. BEM 820,5 kg / CG 952,7 mm = 1809 lb / 67 850 lb·in aus dem Wägenachweis (POH S. 6-5, Stand 7/2026), wie Planungskarte (OM-Anhang 5.18)."
   }
 };
 
 const LS_KEY = "fcy-flightlog-draft-v2";
 const $ = id => document.getElementById(id);
-const BUILD = "2026-10-03b";
+const BUILD = "2026-10-18k";
 /* Revisionsstand des gelenkten Anhangs — bei jeder OM-Revision hier anpassen (Anhangsverzeichnis OM) */
-const OM_REV = "REV 0.3 / 10.10.2026";
-try{ const e = document.getElementById("omRev"); if (e) e.textContent = OM_REV; }catch(e){}
+const OM_REV = "REV 0.3 / 18.10.2026";
+/* Start oder Landung je Leistungsblock kennzeichnen (für die Faktoren aus OM-C 3.1) */
+for (const cs of Object.keys(AIRCRAFT)){ const P = AIRCRAFT[cs].perf; if (P){ if (P.to) P.to.kind = "to"; if (P.ldg) P.ldg.kind = "ldg"; } }
+/* OM-C 3.1: Faktoren für Zustände ohne Korrektur im Flughandbuch — auf die korrigierte Strecke, vor dem Faktor F;
+   treffen mehrere zu, werden alle zutreffenden Faktoren multipliziert (REV 0.3, Freigabe 13.10.2026) */
+const COND_OPTS = { paved:["trocken","nass"], grass:["trocken","nass","weicher Boden","nass, weicher Boden"] };
+function perfPaved(surf){ return /asphalt|beton/i.test(String(surf || "")); }
+function perfCondParts(B, s){
+  const c = s.cond || "trocken", paved = perfPaved(s.surf), ldg = B.kind === "ldg", out = [];
+  if (/nass/.test(c)){ const f = paved ? (ldg ? 1.15 : 1.0) : (ldg ? 1.35 : 1.30); if (f !== 1) out.push(f); }
+  if (!paved && /weich/.test(c)) out.push(1.25);
+  return out;
+}
+/* C182R: Startklappen (OM-C 3.1 „the flap setting used for take-off“) — POH Fig. 5-4 gilt für 20° */
+function perfFlap(B, s){
+  if (!B || !B.flaps) return { k:1 };
+  const v = String(s && s.flaps != null && String(s.flaps).trim() !== "" ? s.flaps : B.flaps.def);
+  const o = B.flaps.opts.find(x => x[0] === v);
+  return o ? { k:o[2], v, label:o[1] } : { k:null, v, bad:true };
+}
+function perfFlapTxt(B, s){ const f = perfFlap(B, s); return f.bad || !B.flaps ? "" : `Klappen ${f.v}°${f.k !== 1 ? " (× " + String(f.k).replace(".", ",") + ")" : ""}`; }
+function perfCondFactor(B, s){ return perfCondParts(B, s).reduce((a, f) => a * f, 1); }
+function perfApplyOm(B, s, roll, d50, notes){
+  const parts = perfCondParts(B, s), kc = parts.reduce((a, f) => a * f, 1);
+  if (kc !== 1){ roll *= kc; d50 *= kc; notes.push(`Bahnzustand „${s.cond}“: × ${parts.map(f => f.toFixed(2).replace(".", ",")).join(" × ")} (OM-C 3.1)`); }
+  else if ((s.cond || "trocken") === "nass") notes.push("Nasse Asphaltbahn: beim Start kein Zuschlag (OM-C 3.1)");
+  return [roll, d50];
+}
+try{ const e = document.getElementById("omRev"); if (e) e.textContent = `${OM_REV} · Build ${BUILD}`; }catch(e){}
 /* Open-Meteo: mit Schlüssel (kommerzielle Lizenz) laufen alle Abrufe über die customer-Server */
 const OM_KEY_LS = "fcy-om-key";
 function omKey(){ try{ return (localStorage.getItem(OM_KEY_LS) || "").trim(); }catch(e){ return ""; } }
@@ -1923,8 +1984,10 @@ function extraPlan(){
   const x = (state && state.extra) || {}, legs = (state && state.legs) || [], N = legs.length;
   const awAt = new Array(N + 1).fill(0);
   legs.forEach((l, i) => { const m = num(l.awMin); if (m != null && m > 0) awAt[i + 1] = m; });   /* Airwork hängt am Wegpunkt am Ende von Leg i */
-  const cn = num(x.circN), cm = num(x.circMin);
-  const circ = (cn != null && cn > 0 && cm != null && cm > 0) ? cn * cm : 0;
+  /* OM-C 3.2.4: mindestens 10 min je Platzrunde — leeres Minutenfeld zählt als 10 min (wie der graue Vorschlag im Feld);
+     Werte unter 10 bleiben ein Fehler (navIssues), dann rechnet die Kraftstoffplanung nicht */
+  const cn = num(x.circN), cm = num(x.circMin) ?? 10;
+  const circ = (cn != null && cn > 0 && cm > 0) ? cn * cm : 0;
   const total = awAt.reduce((s, v) => s + v, 0) + circ;
   const h = (state && state.head) || {}, dep = String(h.dep || "").trim().toUpperCase(), dest = String(h.dest || "").trim().toUpperCase();
   const routeEmpty = legs.every(l => !["dist","tc","route"].some(k => String(l[k] ?? "").trim() !== "") && l.lat == null);
@@ -2068,6 +2131,16 @@ function legMinutesAdj(calcs, TT){
   });
   return {mins, tot, any};
 }
+function tocTodShort(T, h){
+  const U = x => String(x || "").trim().toUpperCase(), tt = [];
+  const wpn = i => i <= 0 ? (U(h && h.dep) || "Start") : (String((state.legs[i-1] || {}).route || "").trim() || "WP" + i);
+  if (T.toc) tt.push(`TOC ${T.toc.nm.toFixed(1)} NM / ${fmtT(T.toc.min)} nach ${U(h && h.dep) || "Start"}`);
+  (T.steps || []).forEach(s => tt.push(`Step-Climb auf ${fmt0(s.to)} ft: ${s.nm.toFixed(1)} NM nach ${wpn(s.leg)}`));
+  (T.descs || []).forEach(d => tt.push(`Sinkflug auf ${fmt0(d.to)} ft: TOD ${(d.gap ?? d.nm).toFixed(1)} NM vor ${wpn(d.leg + 1)}`));
+  if (T.tod && !T.tod.none) tt.push(`TOD ${(T.tod.nm + (T.tod.lead || 0)).toFixed(1)} NM / ${fmtT(T.tod.min)} vor ${U(h && h.dest) || "Ziel"}`);
+  for (const w of (T.warns || [])) tt.push("⚠ " + w);
+  return tt.join(" · ");
+}
 function tocTodText(T, h){
   const tt = [];
   if (T.toc){
@@ -2129,12 +2202,24 @@ function migrateState(s){
         if (s.pwr === undefined || s.pwr === null){
           const c = AIRCRAFT[s.callsign].cruise; s.pwr = c ? c.default : null;
         }
+        /* Build 2026-10-17d: nur noch FlyCademy-Stufen — eine nicht mehr angebotene Stufe fällt auf die Vorgabe des Musters */
+        { const c = AIRCRAFT[s.callsign].cruise; if (c && !c.settings.map(String).includes(String(s.pwr))) s.pwr = c.default; }
         if (!s.perf) s.perf = initPerf(s.callsign);
         if (!s.fuel) s.fuel = { res:"vfr", climbMin:"10", appMin:"10", altnMin:"", fob:"" };
         if (s.fuel.descRate === undefined) s.fuel.descRate = "500";
         if (s.fuel.stepRate === undefined) s.fuel.stepRate = "";
         if (!s.map) s.map = {};
         if (!s.extra) s.extra = { circN:"", circMin:"10" };
+        /* REV 0.3 / 12.10.2026: neue Belagsnamen, Bahnzustand, Faktor F mindestens nach OM-C 3.1 */
+        if (s.perf) for (const k of ["to","ldg"]){
+          const ps = s.perf[k], B0 = AIRCRAFT[s.callsign].perf && AIRCRAFT[s.callsign].perf[k];
+          if (!ps || !B0) continue;
+          const MAP = {"Asphalt (eben, trocken)":"Asphalt", "Gras (trocken)":"Gras", "Gras (5–10 cm)":"Gras (bis 20 cm)"};
+          if (MAP[ps.surf]) ps.surf = MAP[ps.surf];
+          if (!ps.cond) ps.cond = "trocken";
+          const fv = num(ps.factor);
+          if (fv == null || (fv < B0.factor && !ps.factorOwn)) ps.factor = String(B0.factor);   /* alte Vorgabewerte anheben, selbst gesetzte (z. B. Charter) behalten */
+        }
         /* frühere Liste „Airwork bei Wegpunkt j“ an den Wegpunkt selbst übertragen */
         if (Array.isArray(s.extra.aw)){ for (const a of s.extra.aw){ const j = Math.round(num(a.at) ?? -1); if (j >= 1 && j <= s.legs.length && String(a.min ?? "").trim()) s.legs[j-1].awMin = String(a.min); } delete s.extra.aw; }
         /* früher schrieb die App die Auto-TAS fest ins Leg — ohne tasOwn-Kennzeichen gilt sie wieder als automatisch */
@@ -2259,7 +2344,7 @@ function legInputs(l, idx, isAltn){
   const rph = isAltn
     ? (String(hh2.altn||"").trim() ? String(hh2.altn).trim().toUpperCase() : "Alternate")
     : (l.lat != null ? wpLabel(idx) : (idx === state.legs.length-1 && String(hh2.dest||"").trim() ? String(hh2.dest).trim().toUpperCase() : "Waypoint"));
-  h += `<td class="route${isAltn ? " rend" : ""}"><div class="rt">${isAltn ? `<small class="wtag">ALTN</small>` : ""}<input data-k="route" data-i="${p}" value="${esc(l.route)}" placeholder="${esc(rph)}">`+
+  h += `<td class="route${isAltn ? " rend" : ""}"><div class="rt">${isAltn ? `<small class="wtag">ALTN</small>` : ""}<input data-k="route" data-i="${p}"${isAltn ? ' data-altn="1"' : ""} value="${esc(l.route)}" placeholder="${esc(rph)}">`+
        `<button type="button" class="pin${l.lat!=null?" set":""}" data-geo="${p}" `+
        `title="${l.lat!=null?"Verortet: "+esc(l.loc||"")+" — klicken zum Ändern":"Wegpunkt verorten"}" aria-label="Wegpunkt verorten">📍</button></div></td>`;
   /* F04: mit der wirksamen Höhe vergleichen (auch geerbt) */
@@ -2273,7 +2358,7 @@ function legInputs(l, idx, isAltn){
       return k === "alt" ? {v:String(DEF_ALT), t:"Standard-Reiseflughöhe — eintragen zum Ändern"} : null;
     }
     if (k === "tas"){
-      const effAlt = String(l.alt ?? "").trim() !== "" ? num(l.alt) : num(inh.alt);
+      const effAlt = String(l.alt ?? "").trim() !== "" ? num(l.alt) : (num(inh.alt) ?? DEF_ALT);   /* wie altnEff */
       const v = cruiseTas(AIRCRAFT[state.callsign], effAlt);
       if (v != null) return {v:String(v), t:`TAS für ${fmt0(effAlt)} ft aus der Reiseflugtabelle (${state.pwr} ${AIRCRAFT[state.callsign].cruise?AIRCRAFT[state.callsign].cruise.unit:""}) — überschreibbar`};
       return String(inh.tas ?? "").trim() !== "" ? {v:String(inh.tas).trim(), t:"vom letzten Leg übernommen — überschreibbar"} : null;
@@ -2333,7 +2418,7 @@ function render(){
   profRowSync(ac);
   ensureDestLeg(); /* DEST-Zeile steht immer unten — Schluss-Leg wird automatisch ergänzt */
   geoStaleSync();  /* Distanz/TC/VAR folgen geänderten Endpunkten (DEP/DEST/Wegpunkte/ALTN) */
-  { const gone = msaCorridorSync(); if (gone.length) GEO_NOTE = {t: Date.now(), txt: `Route geändert — MSA gelöscht (Korridor geändert): ${gone.join(", ")}`}; }
+  { const gone = msaCorridorSync(); if (gone.length) GEO_NOTE = {t: Date.now(), txt: (GEO_NOTE && GEO_NOTE.dr && Date.now() - GEO_NOTE.t < 2000 ? GEO_NOTE.txt + " · " : "") + `Route geändert — MSA gelöscht (Korridor geändert): ${gone.join(", ")}`}; }
 
   /* legs */
   const body = $("legBody");
@@ -2422,10 +2507,10 @@ function render(){
     const isDest = i === N-1 && destSet &&
       ((String(l.route||"").trim() === "" && l.lat == null) || String(l.route).trim().toUpperCase() === destSet);
     const rph = l.lat != null ? wpLabel(i) : ((i === N-1 && destSet) ? destSet : "Waypoint");
-    put(s + h2 - 1, 0, `<td class="route${isDest ? " rend" : ""}"${sp(wpSpan)}><div class="rt">${isDest ? `<small class="wtag">DEST</small>` : ""}<input data-k="route" data-i="${p}" value="${esc(l.route)}" placeholder="${esc(rph)}">`+
+    put(s + h2 - 1, 0, `<td class="route${isDest ? " rend" : ""}"${sp(wpSpan)}><div class="rt">${isDest ? `<small class="wtag">DEST</small>` : ""}<input data-k="route" data-i="${p}"${isDest ? ' data-dest="1"' : ""} value="${esc(l.route)}" placeholder="${esc(rph)}">`+
       `<button type="button" class="pin${l.lat!=null?" set":""}" data-geo="${p}" `+
       `title="${l.lat!=null?"Verortet: "+esc(l.loc||"")+" — klicken zum Ändern":"Wegpunkt verorten"}" aria-label="Wegpunkt verorten">📍</button>`+
-      `<button type="button" class="awb${l.awMin != null ? " set" : ""}" data-awt="${i}" title="Airwork an diesem Wegpunkt (Zeit mit Reiseverbrauch)" aria-label="Airwork">⟳</button>`+
+      `<button type="button" class="awb${l.awMin != null ? " set" : ""}" data-awt="${i}" title="Airwork oder Übungsanflüge an diesem Wegpunkt (Zeit mit Reiseverbrauch; je Übungsanflug mindestens 10 min, OM-C 3.2.4)" aria-label="Airwork">⟳</button>`+
       `${isDest ? "" : `<button type="button" class="rmx" data-rm="${i}" title="Wegpunkt entfernen (Leg ${i+1})" aria-label="Wegpunkt entfernen">✕</button>`}`+
       `</div>${l.awMin != null ? `<div class="awchip">⟳ Airwork <input data-k="awMin" data-i="${p}" value="${esc(l.awMin)}" inputmode="decimal" aria-label="Airwork-Minuten"> min</div>` : ""}</td>`);
     put(s + h2 - 1, 16, `<td${sp(wpSpan)}><input data-k="eto" data-i="${p}" value="${esc(l.eto)}" placeholder="hh:mm"></td>`);
@@ -2458,7 +2543,10 @@ function render(){
   /* offene Karte live nachziehen (debounced, ohne Zoom/Pan zu verlieren) */
   if (typeof MAP !== "undefined" && MAP && $("mapBox").style.display !== "none"){
     clearTimeout(render._mapT);
-    render._mapT = setTimeout(()=>{ resolveChainIcaos().then(()=>mapSync(false)); }, 350);
+    render._mapT = setTimeout(()=>{ resolveChainIcaos().then(()=>{
+      if (altnAutoDue()){ const ae = document.activeElement; if (ae && ae !== document.body && ae.dataset) renderPreservingFocus(ae); else render(); }
+      else mapSync(false);
+    }); }, 350);
   }
   clearTimeout(render._elT);
   render._elT = setTimeout(apElevAuto, 500);
@@ -2596,8 +2684,59 @@ function geoStaleSync(){
     else { o.geoStale = true; dropMsa(o, name); }                                       /* nicht berechenbar → sperren */
   };
   state.legs.forEach((l,i) => one(l, G.legs[i], legLabel(i)));
+  /* Alternate im Kopffeld oder in der ALTN-Zeile eingetragen und noch nie gerechnet: Distanz, TC und VAR gleich
+     aus den Koordinaten — wie beim Setzen auf der Karte (auch beim reinen Platzrundenflug, wo es sonst nichts zu rechnen gibt).
+     Selbst eingetragene Distanz/TC bleiben unberührt. */
+  if (altnAutoDue()){ geoFillSeg(state.altn, G.a.p0, G.a.p1); state.altn.geoSig = G.a.sig; state.altn.geoStale = false; }
   if (state.altn) one(state.altn, G.a, "Alternate");
-  if (redone.length) GEO_NOTE = {t: Date.now(), txt: `Route geändert — Distanz, TC und VAR automatisch neu berechnet: ${redone.join(", ")}${msaGone.length ? ` · MSA gelöscht (Korridor geändert): ${msaGone.join(", ")}` : ""}`};
+  if (redone.length) GEO_NOTE = {t: Date.now(), txt: (GEO_NOTE && GEO_NOTE.dr && Date.now() - GEO_NOTE.t < 2000 ? GEO_NOTE.txt + " · " : "") + `Route geändert — Distanz, TC und VAR automatisch neu berechnet: ${redone.join(", ")}${msaGone.length ? ` · MSA gelöscht (Korridor geändert): ${msaGone.join(", ")}` : ""}`};
+}
+function altnAutoDue(){
+  const a = state && state.altn;
+  if (!a || a.geoSig != null || String(a.dist ?? "").trim() !== "" || String(a.tc ?? "").trim() !== "") return false;
+  const g = geoSigs().a;
+  return !!(g.p0 && g.p1);
+}
+/* ---- Wegpunkt aus TC und Distanz verorten (Georgi 18.10.2026) ----
+   Ein Wegpunkt ohne eigene Position (kein Flugplatz aus der Datenbank, kein Kartenpunkt, keine Ortssuche) bekommt eine echte
+   Position, sobald TC und Distanz seines Legs eingetragen sind und der Punkt davor verortet ist: Großkreis vom Vorgänger aus —
+   genaue Umkehrung von gcNm/gcTc, die Werte des Legs bleiben also unverändert. Danach ist er ein normaler Kartenpunkt (ziehbar).
+   Solange er nicht verschoben wurde (Position = drPos), folgt er Änderungen von TC/Distanz; so gesetzte Folgepunkte wandern
+   mit (ihre TC/Distanz bleiben). Das Leg in den nächsten festen Punkt folgt der Karte wie nach dem Verschieben eines Punkts.
+   Nur bei Eingabe in TC/Distanz — beim Laden eines Plans wird nichts verortet. Ausnahme: die DEST-Zeile ohne eigenen Namen. */
+function drIsSet(l){ return !!(l && Array.isArray(l.drPos) && l.lat === l.drPos[0] && l.lon === l.drPos[1]); }
+function drPlaceFrom(i0){
+  const n = state.legs.length, placed = [];
+  for (let i = i0; i < n; i++){
+    const l = state.legs[i], {wps} = geoChain();
+    const destRow = i === n - 1 && !String(l.route || "").trim();
+    const isDr = drIsSet(l), free = !isDr && !wps[i+1].c && !destRow;
+    if (!isDr && !free) break;                                          /* fester Punkt: Kette endet */
+    const p0 = wps[i].c, d = num(l.dist), tc = num(l.tc);
+    if (!p0 || d == null || !(d > 0) || tc == null || tc < 0 || tc > 360) break;
+    const c = destPoint(p0, tc, d);
+    l.lat = round5(c.lat); l.lon = round5(c.lon); l.drPos = [l.lat, l.lon];
+    placed.push(i);
+  }
+  if (!placed.length) return [];
+  const G = geoSigs(), {wps} = geoChain();
+  for (const i of placed){
+    const l = state.legs[i], g = G.legs[i];
+    l.geoSig = g.sig; l.geoStale = false;                               /* TC/Distanz sind die Quelle — nicht aus der Karte überschreiben */
+    if (String(l.msa ?? "").trim() !== "") l.msaSig = g.sig;            /* eingetragene MSA gilt für das eigene Leg weiter */
+    if (String(l.var ?? "").trim() === ""){ const dv = magVarAt((g.p0.lat + g.p1.lat)/2, (g.p0.lon + g.p1.lon)/2); if (dv != null) l.var = String(Math.round(-dv)); }
+  }
+  const s = placed[placed.length - 1] + 1, ls = state.legs[s];
+  if (ls){
+    const gs = G.legs[s], has = String(ls.dist ?? "").trim() !== "" || String(ls.tc ?? "").trim() !== "";
+    if (!wps[s+1].c){                                                   /* Folgepunkt noch ohne Position: seine Eingaben bleiben gültig */
+      if (has){ ls.geoSig = gs.sig; ls.geoStale = false; }
+      if (String(ls.msa ?? "").trim() !== "") ls.msaSig = gs.sig;
+    }
+    else if (!has && ls.geoSig == null && gs.p0 && gs.p1){ geoFillSeg(ls, gs.p0, gs.p1); ls.geoSig = gs.sig; ls.geoStale = false; }   /* leeres Leg in festen Punkt: aus der Karte */
+  }
+  GEO_NOTE = {t: Date.now(), dr: true, txt: `Aus TC und Distanz auf die Karte gesetzt: ${placed.map(i => legLabel(i)).join(", ")}`};
+  return placed;
 }
 function geoSigMark(key){
   const G = geoSigs();
@@ -2656,9 +2795,10 @@ function navIssues(calcs, ca){
   const XP = extraPlan();
   if (!any && !XP.localOnly) out.push("Noch keine Strecke eingetragen");
   { const x = state.extra || {};
-    out.push(...fieldBad(x, [["circN",0,60,"Anzahl Platzrunden"],["circMin",1,120,"Minuten je Platzrunde"]]).map(t => `Platzrunden: ${t}`));
+    out.push(...fieldBad(x, [["circN",0,60,"Anzahl Platzrunden"],["circMin",10,120,"Minuten je Platzrunde (mindestens 10, OM-C 3.2.4)"]]).map(t => `Platzrunden: ${t}`));
     if (String(x.circN ?? "").trim() !== "" && num(x.circN) != null && num(x.circN) !== Math.round(num(x.circN))) out.push(`Platzrunden: Anzahl „${x.circN}“ muss ganzzahlig sein`);
-    state.legs.forEach((l, i) => { const bad = fieldBad(l, [["awMin",1,300,"Airwork-Minuten"]]); if (bad.length) out.push(`${legLabel(i)}: ${bad.join(", ")}`); }); }
+    state.legs.forEach((l, i) => { const bad = fieldBad(l, [["awMin",1,300,"Airwork-Minuten"]]); if (bad.length) out.push(`${legLabel(i)}: ${bad.join(", ")}`);
+      else if (l.awMin != null && String(l.awMin).trim() === "") out.push(`${legLabel(i)}: Airwork-Minuten fehlen`); }); }
   const a = state.altn || {}, h = state.head || {};
   const aUsed = String(a.route || "").trim() || a.lat != null || String(h.altn || "").trim() || String(a.dist || "").trim();
   const aOver = String((state.fuel || {}).altnMin ?? "").trim() !== "";
@@ -2719,6 +2859,10 @@ function calcWB(ac){
   if (String(state.wb.fuelArm ?? "").trim() === "") inErr.push("Fuel-Arm fehlt (Pflichtangabe)");
   const fobVal = num(state.fuel && state.fuel.fob);
   const taxiL = ac.taxiL ?? 3.0;   /* wie Kraftstoffplanung (OM-C 3.2.4) */
+  /* Fuel TO von Hand und Vorrat (Kraftstoffplanung) müssen zusammenpassen — sonst rechnen M&B und Kraftstoffplanung mit verschiedenen Mengen */
+  { const ft = num(state.wb.fuelTo);
+    if (fobVal != null && ft != null && String(state.wb.fuelTo ?? "").trim() !== "" && Math.abs(ft - Math.max(0, fobVal - taxiL)) > 0.5)
+      inErr.push(`Fuel TO ${ft} l passt nicht zum Kraftstoff-Vorrat ${fobVal} l − Anlassen/Rollen ${taxiL} l = ${Math.max(0, fobVal - taxiL).toFixed(1)} l — Fuel TO leeren (dann automatisch) oder Vorrat berichtigen`); }
   /* automatische Startmenge: Vorrat (sonst Mindestbedarf) abzüglich Anlassen/Rollen — beim Start ist er verbraucht */
   const rampAuto = String(state.wb.fuelTo ?? "").trim() === "" ? (fobVal != null ? fobVal : autoToFuel(ac)) : null;
   const toAutoVal = rampAuto != null ? Math.max(0, rampAuto - taxiL) : null;
@@ -2762,7 +2906,7 @@ function calcWB(ac){
     }
     if (fRamp != null && lim.maxFuel != null){
       const fl = Math.round(fRamp*10)/10;             /* getankte Menge (vor dem Rollen) gegen ausfliegbaren Tankinhalt */
-      checks.push({ok: fl <= lim.maxFuel, txt:`Kraftstoff an Bord ${fl} l ${fl<=lim.maxFuel?"≤":">"} ausfliegbar ${lim.maxFuel} l`});
+      checks.push({ok: fl <= lim.maxFuel, txt:`Kraftstoff an Bord ${fl} l${galSfx(ac, fl)} ${fl<=lim.maxFuel?"≤":">"} ausfliegbar ${lim.maxFuel} l${galSfx(ac, lim.maxFuel)}`});
     }
   }
   for (const w of bagWarn) checks.push({ok:false, txt:w});
@@ -2819,8 +2963,11 @@ function renderWB(ac){
 
   $("fuelTo").value = state.wb.fuelTo ?? ""; $("fuelLdg").value = state.wb.fuelLdg ?? "";
   $("fuelTo").placeholder = W.toAuto && W.fTo != null ? W.fTo.toFixed(1) : "";
-  $("fuelTo").title = W.toAuto ? (W.toSrc === "fob" ? "Kraftstoff beim Start = Vorrat (Stäbchen) − Anlassen/Rollen — eintragen zum Überschreiben" : "Kraftstoff beim Start = Mindest-Kraftstoffbedarf − Anlassen/Rollen — eintragen zum Überschreiben (tatsächliche Betankung)") : "";
+  $("fuelTo").title = W.toAuto ? (W.toSrc === "fob" ? "Kraftstoff beim Start = Vorrat (Dipstick/Tankanzeige) − Anlassen/Rollen — eintragen zum Überschreiben" : "Kraftstoff beim Start = Mindest-Kraftstoffbedarf − Anlassen/Rollen — eintragen zum Überschreiben (tatsächliche Betankung)") : "";
   $("fuelLdg").placeholder = W.ldgAuto && W.fLdg != null ? W.fLdg.toFixed(1) : "";
+  { const g1 = $("fuelToGal"), g2 = $("fuelLdgGal");
+    if (g1){ g1.hidden = !galOn(ac); g1.textContent = W.fTo != null ? `= ${galTxt(W.fTo)} US gal` : " "; }
+    if (g2){ g2.hidden = !galOn(ac); g2.textContent = W.fLdg != null ? `= ${galTxt(W.fLdg)} US gal` : " "; } }
   $("fuelDens").value = state.wb.density ?? ac.density ?? ""; $("fuelArm").value = state.wb.fuelArm ?? ac.fuelArm ?? "";
 
   const set = (id, mass, mom) => {
@@ -2831,7 +2978,7 @@ function renderWB(ac){
   if (W.tom != null) set("tom", W.tom, W.tomMom); else $("tom").textContent = "–";
   if (W.ldm != null) set("ldm", W.ldm, W.ldmMom); else $("ldm").textContent = "–";
   $("tripFuel").innerHTML = (W.fTo!=null && W.fLdg!=null)
-    ? `${(W.fTo-W.fLdg).toFixed(0)} l <small>${W.dens!=null?((W.fTo-W.fLdg)*W.dens).toFixed(1)+" kg":""}</small>` : "–";
+    ? `${(W.fTo-W.fLdg).toFixed(0)} l${galOn(ac) ? ` <small>${galTxt(W.fTo-W.fLdg)} gal</small>` : ""} <small>${W.dens!=null?((W.fTo-W.fLdg)*W.dens).toFixed(1)+" kg":""}</small>` : "–";
 
   const li = (ok, txt) => `<li class="${ok?"ok":"bad"}">${ok?"✔":"✘"} ${txt}</li>`;
   const checks = W.checks.map(c => ckLi(Object.assign({}, c, {txt: esc(c.txt)}))).join("");
@@ -2912,7 +3059,7 @@ function switchAircraft(cs){
   /* nur Platz- und Wetterangaben übernehmen — Faktor und Belag sind musterabhängig */
   /* F06: auch Wind (Richtung/Stärke/Böen/variabel), Pistenkennung, Platzbezug und eigene Wetterwerte — sonst laufen
      Quellenzeile und Rechnung auseinander. Belag folgt der Piste (applyRwyChoice), Faktor bleibt musterabhängig. */
-  const KEEP = ["elev","qnh","oat","wind","wdir","wkt","wgust","wvrb","wxOwn","slope","rwy","rwyDir","rwyId","rwySrc","stIcao","metarInfo"];
+  const KEEP = ["elev","qnh","oat","wind","wdir","wkt","wgust","wvrb","wxOwn","slope","cond","rwy","rwyDir","rwyId","rwySrc","stIcao","metarInfo"];
   for (const k of ["to","ldg"]) if (state.perf && state.perf[k] && freshPerf && freshPerf[k])
     for (const f of KEEP) if (state.perf[k][f] !== undefined) freshPerf[k][f] = state.perf[k][f];
   state.perf = freshPerf;
@@ -2948,8 +3095,16 @@ function init(){
         const own = e.target.value.trim() !== "";
         state.head.etaDflt = !own; e.target.classList.toggle("dflt", !own);
       }
+      /* DEST/ALTN in den Kopfdaten geändert → DEST-/ALTN-Zeile im Navlog folgt, wenn dort der alte Platz stand
+         (ohne Pin oder mit Pin genau auf dem alten Platz — der gilt dann nicht mehr) */
+      if (id === "dest" || id === "altn"){
+        const old = String(state.head[id] || "").trim().toUpperCase(), L = id === "dest" ? state.legs[state.legs.length - 1] : state.altn;
+        if (L && old && String(L.route || "").trim().toUpperCase() === old && (L.lat == null || String(L.loc || "").trim().toUpperCase() === old)){
+          L.route = ""; if (L.lat != null){ delete L.lat; delete L.lon; delete L.loc; } }
+      }
       state.head[id]=e.target.value; saveState();
       if (["dep","dest","altn","etd"].includes(id)) render();
+      if ((id === "dep" || id === "dest") && /^[A-Za-z]{4}$/.test(e.target.value.trim())) perfStationAuto();
       /* neuer Platz → Karte auf die Route einpassen (nicht bei Wegpunkt-Änderungen) */
       if (["dep","dest","altn"].includes(id) && /^[A-Za-z]{4}$/.test(e.target.value.trim()) && MAP){
         clearTimeout(mapShow._t); mapShow._t = setTimeout(() => { try{ mapShow(); }catch(err){} }, 400);
@@ -3041,6 +3196,8 @@ function init(){
     if (t.dataset.k !== undefined && t.dataset.i !== undefined){
       const obj = t.dataset.i === "a" ? state.altn : state.legs[parseInt(t.dataset.i.slice(1),10)];
       if (obj){ obj[t.dataset.k] = t.value;
+        /* DEST-/ALTN-Zeile des Navlogs geändert → Kopfdaten mitführen */
+        if (t.dataset.k === "route" && HEAD_EDIT && HEAD_EDIT.i === t.dataset.i) headFromLog(obj, t.value);
         if (t.dataset.k === "var" && t.dataset.i !== "a"){
           const from = parseInt(t.dataset.i.slice(1),10);
           for (let j = from+1; j < state.legs.length; j++) state.legs[j].var = t.value;
@@ -3055,6 +3212,7 @@ function init(){
         if (t.dataset.k === "wd" || t.dataset.k === "ws") obj.windAuto = false;
         if (t.dataset.k === "msa"){ obj.msaStale = false; obj.msaSig = null; }   /* eingetragen: gilt für den aktuellen Korridor */
         if (["dist","tc"].includes(t.dataset.k)) geoSigMark(t.dataset.i);   /* Handeingabe gilt für die aktuelle Strecke */
+        if (["dist","tc"].includes(t.dataset.k) && t.dataset.i !== "a") drPlaceFrom(parseInt(t.dataset.i.slice(1), 10));   /* Wegpunkt aus TC/Distanz verorten */
         if (["eto","ato"].includes(t.dataset.k)) { saveState(); refreshCalcOnly(); }
         else renderPreservingFocus(t);
       }
@@ -3065,6 +3223,7 @@ function init(){
     if (t.dataset.pb !== undefined){
       state.perf[t.dataset.pb][t.dataset.pk] = t.type === "checkbox" ? t.checked : t.value;
       if (t.dataset.pk === "rwy") state.perf[t.dataset.pb].rwySrc = "";   /* selbst eingetragen = bestätigt */
+      if (t.dataset.pk === "factor") state.perf[t.dataset.pb].factorOwn = String(t.value).trim() !== "";   /* selbst gesetzt — bleibt beim Wiederherstellen */
       if (["qnh","oat","wdir","wkt","wgust"].includes(t.dataset.pk)){ state.perf[t.dataset.pb].wxOwn = true; if (t.dataset.pk === "wdir") state.perf[t.dataset.pb].wvrb = false; }
       renderPreservingFocus(t);
     }
@@ -3101,7 +3260,8 @@ function init(){
   });
 
   document.addEventListener("click", e=>{
-    if (e.target && e.target.id === "btnRwy"){ e.preventDefault(); rwyLoad(); apElevAuto(); return; }
+    const rb = e.target && e.target.closest ? e.target.closest("[data-rwyload]") : null;
+    if (rb){ e.preventDefault(); rwyLoad(); apElevAuto(); return; }
   });
   document.addEventListener("click", e=>{
     const b = e.target.closest("button[data-rm]");
@@ -3259,12 +3419,21 @@ function effLegs(){
 function autoTas(leg){
   if (leg && !leg.tasOwn) leg.tas = "";
 }
+function pwrLabel(ac, v){ const c = ac && ac.cruise; if (!c) return String(v ?? ""); return (c.labels && c.labels[String(v)]) || `${v} ${c.unit}`; }
+/* US-Gallonen neben Litern — für Muster, deren Tankanzeige/Dipstick und Handbuch in US gal rechnen (showGal).
+   Nur Anzeige: gerechnet wird in Litern, die Gallonen sind umgerechnet (1 US gal = 3,785 l) und wie die Liter auf 0,1 gerundet. */
+const L_PER_USG = 3.785411784;
+function galOn(ac){ return !!(ac && ac.showGal); }
+function galTxt(l, d){ d = d ?? 1; return (l == null || !isFinite(l)) ? "–" : (Math.round(l / L_PER_USG * 10**d) / 10**d).toLocaleString("de-DE", {minimumFractionDigits:d, maximumFractionDigits:d}); }
+function galSfx(ac, l){ return galOn(ac) && l != null && isFinite(l) ? ` (${galTxt(l)} gal)` : ""; }
+function galSm(ac, l){ return galOn(ac) && l != null && isFinite(l) ? ` <small class="gal">(${galTxt(l)} gal)</small>` : ""; }
+function galRate(ac, r){ return galOn(ac) && r != null && isFinite(r) ? ` <small class="gal">(${galTxt(r)} gal/h)</small>` : ""; }
 function hydratePwr(){
   const ac = AIRCRAFT[state.callsign], sel = $("pwr");
   if (ac.cruise){
     sel.disabled = false;
     sel.innerHTML = ac.cruise.settings.map(s =>
-      `<option value="${s}"${String(state.pwr)===String(s)?" selected":""}>${s} ${ac.cruise.unit}</option>`).join("");
+      `<option value="${s}"${String(state.pwr)===String(s)?" selected":""}>${esc(pwrLabel(ac, s))}</option>`).join("");
     $("cruiseSrc").textContent = "TAS-Quelle: " + ac.cruise.src;
   } else {
     sel.disabled = true;
@@ -3391,12 +3560,12 @@ function applyRwyChoice(key, val){
 }
 function initPerf(cs){
   const P = AIRCRAFT[cs || "D-EGZZ"].perf;
-  const mk = B => B ? { elev:"", qnh:"1013", oat:"", wind:"0", surf:B.basis, slope:"0",
+  const mk = B => B ? { elev:"", qnh:"", oat:"", wind:"0", surf:B.basis, cond:"trocken", slope:"0", ...(B.flaps ? {flaps:B.flaps.def} : {}),
                         factor:String(B.factor), rwy:"", rwyDir:"", rwySrc:"", metarInfo:"" } : null;
   return P ? { to:mk(P.to), ldg:mk(P.ldg) } : null;
 }
 
-const DA40_NOMO={"to_roll":{"gridA":[[264.8,280.3,292.7,311.2,325.6,350.3,377.1,408.0,441.0],[293.3,309.1,325.6,344.2,360.6,385.4,418.3,476.0,514.1],[324.6,342.1,361.7,383.3,401.9,430.7,484.3,557.4,603.8],[360.6,380.2,404.9,426.6,446.2,500.8,578.0,658.4,717.1],[400.8,424.5,449.2,474.0,499.7,554.3,632.6,716.1,784.1],[447.2,474.0,502.8,531.7,558.4,614.1,696.5,783.0,null],[501.8,532.7,565.7,597.6,628.5,687.2,769.6,null,null],[568.8,602.7,638.8,675.9,713.0,769.6,null,null,null]],"B":[[null,127.8,164.9,206.1,232.9,252.5],[111.3,142.2,181.4,228.8,257.6,278.2],[123.7,155.6,201.0,253.5,284.4,309.1],[136.1,171.1,222.6,280.3,315.3,345.2],[150.5,191.7,246.1,312.2,350.3,385.4],[164.9,210.2,273.1,346.2,391.6,426.6],[183.4,236.0,304.0,387.4,440.0,484.3],[207.1,265.9,346.2,438.9,497.7,547.1],[240.1,308.1,402.9,514.1,585.2,652.2],[258.7,327.7,433.8,560.5,636.7,698.6],[279.3,358.6,472.9,606.9,692.4,762.4],[304.0,388.5,513.1,664.6,757.3,836.6]],"head":[[173.1,156.7,143.3,129.9,119.6],[204.1,187.6,171.1,156.7,144.3],[244.2,223.6,206.1,188.6,174.2],[294.7,274.1,252.5,231.9,214.4],[328.7,307.1,287.5,274.1,252.5],[344.2,321.5,298.8,275.1,264.8],[410.1,383.3,356.5,330.8,307.1],[496.6,467.8,435.9,407.0,379.2],[619.2,583.2,546.1,511.1,478.1]],"tail":[[173.1,223.6,272.0,328.7,385.4],[300.9,369.9,441.0,511.1,581.2],[351.4,428.6,509.0,589.4,669.8],[419.4,502.8,595.5,688.2,780.9],[508.0,606.9,710.9,814.9,918.9]],"mpts":[750,850,950,1050,1100,1150],"wscale":1.2555},"to_15m":{"gridA":[[541.0,567.5,595.0,617.5,644.0,687.8,741.8,810.3,880.4],[587.0,614.0,641.5,672.9,699.6,754.0,816.2,944.1,1042.8],[641.0,669.7,701.0,735.2,768.1,813.5,943.8,1130.9,1260.1],[699.0,736.2,767.5,806.4,847.4,981.8,1157.5,1379.0,1562.9],[783.0,821.2,864.3,908.5,956.2,1102.7,1292.8,1545.3,1776.3],[885.0,932.5,983.5,1033.0,1091.6,1251.6,1464.2,null,null],[1013.0,1070.7,1133.5,1197.3,1264.7,1436.8,1674.6,null,null],[1186.0,1257.6,1332.1,1410.7,1495.5,1684.3,null,null,null]],"B":[[248.8,295.3,361.8,439.3,485.9,525.8],[264.3,317.5,388.4,470.4,521.3,567.9],[282.0,337.4,415.0,508.0,565.7,616.6],[299.7,357.3,446.0,550.1,614.4,672.0],[326.3,392.8,490.3,612.2,685.3,751.8],[352.9,430.5,543.5,683.1,760.7,824.9],[375.1,461.5,587.8,742.9,842.7,935.7],[434.9,529.9,678.7,871.5,1000.0,1119.7],[481.4,601.1,789.5,1037.7,1203.9,1361.2]],"head":[[386.1,366.2,341.8,324.1,306.4],[434.9,408.3,383.9,361.8,344.0],[490.3,463.7,441.6,415.0,392.8],[567.9,539.1,512.5,485.9,461.5],[627.7,598.9,570.1,536.8,510.2],[687.5,660.9,627.7,596.7,565.7],[754.0,720.8,683.1,647.6,612.2],[816.1,780.6,738.5,703.0,669.8],[909.1,873.7,829.4,782.8,747.4],[1026.6,982.3,933.5,889.2,849.3],[1172.9,1124.1,1070.9,1017.7,971.2],[1367.9,1310.2,1250.4,1190.6,1137.4]],"tail":[[829.4,949.0,1070.9,1190.6,1310.3],[924.7,1048.8,1188.4,1328.0,1467.6],[1190.6,1345.7,1514.1,1682.5,1850.9],[1387.8,1565.1,1753.5,1941.9,2130.3]],"mpts":[750,850,950,1050,1100,1150],"wscale":1.8738},"ldg_15m":{"gridA":[[541.4,561.1,583.1,603.9,625.9,645.6,666.4,688.4,708.1],[583.1,605.1,629.4,652.5,674.5,697.7,720.8,744.0,766.0],[628.2,652.5,676.9,701.2,724.3,749.8,774.1,798.4,821.5],[678.0,702.3,727.8,754.4,778.7,803.0,828.5,855.1,879.4],[724.3,752.1,779.9,806.5,833.1,860.9,888.7,916.4,941.9],[774.1,805.3,837.7,869.0,900.2,930.3,962.7,null,null]],"B":[[430.3,458.1,489.9,526.4,546.1,561.1],[495.1,527.5,562.3,603.9,624.8,642.1],[553.0,587.7,628.2,676.9,703.5,722.0],[615.5,654.9,701.2,753.4,782.2,803.0],[673.4,717.4,769.4,826.2,856.3,880.6],[742.8,793.8,856.3,921.1,956.9,984.7]],"head":[[418.8,359.7,293.8,227.9,162.0],[502.1,433.8,363.2,292.6,222.0],[597.0,522.9,445.4,367.9,290.4],[682.6,603.9,522.9,443.1,363.3],[783.3,700.0,610.9,535.6,438.4],[872.5,785.6,691.9,616.7,541.5],[968.5,886.3,786.8,696.5,614.4]],"tail":[],"mpts":[850,925,1000,1075,1115,1150],"wscale":0.6497},"ldg_roll":{"gridA":[[275.8,283.4,290.5,298.0,305.1,312.6,320.1,327.2,334.3],[290.9,298.4,306.7,314.3,321.8,330.1,337.8,345.6,352.7],[305.5,313.8,322.6,331.0,338.9,347.3,355.2,363.5,371.1],[321.4,330.1,339.3,348.5,356.9,366.1,375.2,384.4,393.2],[339.7,349.8,360.2,370.2,380.3,390.3,399.9,410.3,419.5],[357.7,369.4,380.7,391.1,402.4,413.7,423.7,435.0,null]],"B":[[236.6,245.8,257.2,270.0,276.7,282.5],[259.5,270.0,283.9,297.6,305.9,311.8],[277.5,290.0,305.1,321.8,330.5,337.6],[300.1,312.6,326.8,345.6,355.2,363.5],[323.0,338.5,356.9,376.9,387.8,396.5],[349.3,366.1,386.5,410.3,422.9,433.3]],"head":[[229.9,211.1,191.5,173.9,158.1],[291.3,267.9,242.8,220.7,199.8],[325.1,298.8,268.7,240.3,211.9],[361.9,333.5,302.1,274.2,248.3],[394.9,363.1,328.5,293.9,259.3],[432.0,398.6,361.5,329.3,297.1]],"tail":[],"mpts":[850,925,1000,1075,1115,1150],"wscale":2.0313}};
+const DA40_NOMO={"to_roll":{"gridA":[[264.8,280.3,292.7,311.2,325.6,350.3,377.1,408.0,441.0],[293.3,309.1,325.6,344.2,360.6,385.4,418.3,476.0,514.1],[324.6,342.1,361.7,383.3,401.9,430.7,484.3,557.4,603.8],[360.6,380.2,404.9,426.6,446.2,500.8,578.0,658.4,717.1],[400.8,424.5,449.2,474.0,499.7,554.3,632.6,716.1,784.1],[447.2,474.0,502.8,531.7,558.4,614.1,696.5,783.0,null],[501.8,532.7,565.7,597.6,628.5,687.2,769.6,null,null],[568.8,602.7,638.8,675.9,713.0,769.6,null,null,null]],"B":[[null,127.8,164.9,206.1,232.9,252.5],[111.3,142.2,181.4,228.8,257.6,278.2],[123.7,155.6,201.0,253.5,284.4,309.1],[136.1,171.1,222.6,280.3,315.3,345.2],[150.5,191.7,246.1,312.2,350.3,385.4],[164.9,210.2,273.1,346.2,391.6,426.6],[183.4,236.0,304.0,387.4,440.0,484.3],[207.1,265.9,346.2,438.9,497.7,547.1],[240.1,308.1,402.9,514.1,585.2,652.2],[258.7,327.7,433.8,560.5,636.7,698.6],[279.3,358.6,472.9,606.9,692.4,762.4],[304.0,388.5,513.1,664.6,757.3,836.6]],"head":[[173.1,156.7,143.3,129.9,119.6],[204.1,187.6,171.1,156.7,144.3],[244.2,223.6,206.1,188.6,174.2],[294.7,274.1,252.5,231.9,214.4],[328.7,307.1,287.5,274.1,252.5],[344.2,321.5,298.8,275.1,264.8],[410.1,383.3,356.5,330.8,307.1],[496.6,467.8,435.9,407.0,379.2],[619.2,583.2,546.1,511.1,478.1]],"tail":[[173.1,223.6,272.0,328.7,385.4],[300.9,369.9,441.0,511.1,581.2],[351.4,428.6,509.0,589.4,669.8],[419.4,502.8,595.5,688.2,780.9],[508.0,606.9,710.9,814.9,918.9]],"mpts":[750,850,950,1050,1100,1150],"wscale":1.2555},"to_15m":{"gridA":[[541.0,567.5,595.0,617.5,644.0,687.8,741.8,810.3,880.4],[587.0,614.0,641.5,672.9,699.6,754.0,816.2,944.1,1042.8],[641.0,669.7,701.0,735.2,768.1,813.5,943.8,1130.9,1260.1],[699.0,736.2,767.5,806.4,847.4,981.8,1157.5,1379.0,1562.9],[783.0,821.2,864.3,908.5,956.2,1102.7,1292.8,1545.3,1776.3],[885.0,932.5,983.5,1033.0,1091.6,1251.6,1464.2,null,null],[1013.0,1070.7,1133.5,1197.3,1264.7,1436.8,1674.6,null,null],[1186.0,1257.6,1332.1,1410.7,1495.5,1684.3,null,null,null]],"B":[[248.8,295.3,361.8,439.3,485.9,525.8],[264.3,317.5,388.4,470.4,521.3,567.9],[282.0,337.4,415.0,508.0,565.7,616.6],[299.7,357.3,446.0,550.1,614.4,672.0],[326.3,392.8,490.3,612.2,685.3,751.8],[352.9,430.5,543.5,683.1,760.7,824.9],[375.1,461.5,587.8,742.9,842.7,935.7],[434.9,529.9,678.7,871.5,1000.0,1119.7],[481.4,601.1,789.5,1037.7,1203.9,1361.2]],"head":[[386.1,366.2,341.8,324.1,306.4],[434.9,408.3,383.9,361.8,344.0],[490.3,463.7,441.6,415.0,392.8],[567.9,539.1,512.5,485.9,461.5],[627.7,598.9,570.1,536.8,510.2],[687.5,660.9,627.7,596.7,565.7],[754.0,720.8,683.1,647.6,612.2],[816.1,780.6,738.5,703.0,669.8],[909.1,873.7,829.4,782.8,747.4],[1026.6,982.3,933.5,889.2,849.3],[1172.9,1124.1,1070.9,1017.7,971.2],[1367.9,1310.2,1250.4,1190.6,1137.4]],"tail":[[829.4,949.0,1070.9,1190.6,1310.3],[924.7,1048.8,1188.4,1328.0,1467.6],[1190.6,1345.7,1514.1,1682.5,1850.9],[1387.8,1565.1,1753.5,1941.9,2130.3]],"mpts":[750,850,950,1050,1100,1150],"wscale":1.8738},"ldg_15m":{"gridA":[[626.4,652.5,678.6,704.8,730.9,757.1,783.2,809.3,835.5],[678,706.5,735,763.6,792.2,820.8,849.3,877.8,906.4],[734.3,764.6,794.8,825,855.2,885.5,915.7,945.9,976.1],[795.7,827.1,858.6,890,921.4,952.9,984.3,1015.7,1047.2],[852.6,887,921.3,955.6,990,1024.3,1058.6,1092.9,1127.3],[915.8,954.9,994.1,1033.3,1072.5,1111.7,1150.8,1190,null]],"B":[[482.2,496.7,508.5,522.5,536.1,549,563,577.5,593.3,608.5,624.2,639.3,654.1],[562.9,577.6,593.4,609.1,624.3,640,652.9,671.3,688.1,704.5,721.2,738.7,755.1],[634.2,650.2,667.6,683.9,701.8,717.7,734.8,754.3,774.5,794.7,814.9,835.2,855.5],[709.4,728.3,747.4,766.6,786.7,805.2,825.2,846.7,868.6,890.7,913.2,934.4,957.2],[779.8,801.9,822.8,845.3,867.1,889.1,910,933.2,957.9,980.9,1004.7,1028.1,1051.9],[866.2,890.2,915.4,940.8,965.3,991.4,1016,1043.1,1071,1099.2,1127.2,1155.4,1182.3]],"head":[[481.5,401.8,322.2,261.8,202.3],[584.2,494.4,406.4,338.7,270.4],[704.5,605.5,508.3,429.1,351.9],[808.3,705.9,604.3,518.4,430.4],[936.2,824.1,713.2,619.4,526.3],[1045.9,930.7,814.6,713.7,612],[1181.8,1056.3,930.1,819.7,707.3]],"tail":[],"mpts":[850,875,900,925,950,975,1000,1025,1050,1075,1100,1125,1150],"wscale":1},"ldg_roll":{"gridA":[[241.9,252,261.9,271.9,282,292,302.1,312.1,322.1],[262.3,273,283.6,294.3,304.9,315.5,326.2,336.8,347.4],[282.8,294.1,305.3,316.6,327.8,339,350.3,361.5,372.8],[303.6,316,328.4,340.8,353.2,365.5,377.9,390.3,402.7],[329.1,342.7,356.4,370,383.7,397.4,411.1,424.7,438.4],[354.9,369.7,384.5,399.4,414.2,429,443.8,458.7,473.5]],"B":[[186.3,191.4,196.6,201.6,206.6,211.6,217,222.5,228.5,234.6,240,246.1,251.7],[216.9,222.5,228.5,234.6,240,246.1,251.7,258.5,265.4,272.2,278.8,285.4,292.3],[241.8,248.3,255,261.8,268.7,275.1,281.9,289.7,296.9,304.4,312,319.9,327.5],[271.8,278.8,285.4,292.3,298.9,305.8,312.6,320.8,329.2,337.6,345.5,354.4,362.5],[302.2,310.6,319,327.2,335.8,344.6,352.8,362.1,371.1,380.2,389.5,398.6,408.1],[337.9,347.2,356.3,365.6,374.7,383.9,393.6,404.3,414.9,425.7,437,447.6,457.9]],"head":[[181,153.3,125.7,102.7,80],[221,188.4,156,131,105.2],[266.6,230.5,195.8,166.2,135.8],[311.7,271.9,231.6,198.6,166.1],[361.8,319.4,277.1,238.7,201],[407.4,359.7,312.2,274.2,236.1],[458.2,407.9,357.6,314.6,271.3]],"tail":[],"mpts":[850,875,900,925,950,975,1000,1025,1050,1075,1100,1125,1150],"wscale":1}};
 const NOMO_OATS=[-30,-20,-10,0,10,20,30,40,50], NOMO_HEAD=[0,5,10,15,20],
       NOMO_TAIL=[0,3.89,7.78,11.66,15.55,19.44],
       NOMO_PAS={8:[0,2000,4000,6000,7000,8000,9000,10000],6:[0,2000,4000,6000,8000,10000]};
@@ -3456,18 +3625,30 @@ function perfFactor(B, s){
   const v = t === "" ? NaN : parseFloat(t.replace(",", "."));
   return isFinite(v) ? v : B.factor;
 }
+/* Faktor F unter dem Wert nach OM-C 3.1 (Ausbildung der ATO), z. B. für Charter: wird gerechnet, aber überall gekennzeichnet.
+   Untergrenze bleibt 1,0 (Eingabeprüfung) — weniger als das Handbuch geht nie. */
+function perfFactorLow(B, s){
+  if (!B || !s) return "";
+  const F = perfFactor(B, s);
+  if (!(F < B.factor - 1e-9)) return "";
+  const f = v => String(v).replace(".", ",");
+  return `Faktor F ${f(F)} unter dem Wert nach OM-C 3.1 (${f(B.factor)}) — für Ausbildungsflüge der ATO nicht zulässig`;
+}
 function perfIssues(B, s){
   const out = fieldBad(s, [["factor",1,3,"Faktor F"],["rwy",50,6000,"Bahnlänge"],["elev",-1500,16000,"Platzhöhe"],
                            ["qnh",850,1090,"QNH"],["oat",-60,60,"OAT"],["wind",-60,60,"Wind"],["slope",-10,10,"Neigung"],["rwyDir",1,360,"Bahnrichtung"],
                            ["wdir",0,360,"Windrichtung"],["wkt",0,80,"Windstärke"],["wgust",0,100,"Böen"]]);
   if (num(s.wgust) != null && num(s.wkt) != null && num(s.wgust) < num(s.wkt)) out.push("Böen kleiner als Mittelwind");
   if (![B.basis, B.alt].filter(Boolean).includes(s.surf)) out.push("Belag nicht gewählt");
+  { const opts = perfPaved(s.surf) ? COND_OPTS.paved : COND_OPTS.grass; if (!opts.includes(s.cond || "trocken")) out.push("Bahnzustand passt nicht zum Belag"); }
+  if (B.flaps && perfFlap(B, s).bad) out.push("Startklappen nicht gewählt");
   return out;
 }
 function perfComputeNomo(B,s,ac){
   const elev=num(s.elev), qnhIn=num(s.qnh), oat=num(s.oat);
-  if(!isFinite(elev)||!isFinite(oat)) return {ready:false};
-  const qnh=isFinite(qnhIn)?qnhIn:1013;
+  /* Platzhöhe, QNH und OAT sind Pflicht: ohne sie keine Berechnung (Number.isFinite — isFinite(null) wäre true) */
+  if(!Number.isFinite(elev)||!Number.isFinite(oat)||!Number.isFinite(qnhIn)) return {ready:false};
+  const qnh=qnhIn;
   const pa=Math.round(elev+(1013-qnh)*27);
   if(pa>10000||oat>50) return {ready:true,pa,err:"außerhalb des FHB-Diagramms (PA > 10.000 ft oder OAT > 50 °C)"};
   const notes=[], infos=[];
@@ -3486,8 +3667,8 @@ function perfComputeNomo(B,s,ac){
   let d50=nomoCompute(DA40_NOMO[B.charts[1]],pa,oat,mass,w);
   if(roll==null||d50==null) return {ready:true,pa,err:"außerhalb des FHB-Diagramms (Kurve endet vor dieser PA/OAT-Kombination)"};
   const rollTab=roll, d50Tab=d50;
-  if(s.surf!==B.basis){ const add=0.15*roll; roll+=add; d50+=add;
-    notes.push("Gras (5–10 cm): +15 % Rollstrecke laut FHB; < 5 cm wären +10 %, > 10 cm ≥ +25 % — Zuschlag manuell prüfen"); }
+  if(s.surf!==B.basis){ const add=0.25*roll; roll+=add; d50+=add;
+    notes.push("Gras bis 20 cm: +25 % Rollstrecke (FHB: über 10 cm mindestens +25 %; kürzeres Gras konservativ ebenso)"); }
   const sl=(num(s.slope) ?? 0);
   if(B.wbKey==="tom"&&sl>0){ const k=1+0.05*sl; roll*=k; d50*=k;
     notes.push("Steigung: +5 % je 1 % laut FHB — der Einfluss auf die Rollstrecke kann größer sein"); }
@@ -3495,14 +3676,38 @@ function perfComputeNomo(B,s,ac){
   if(B.wbKey==="ldm"&&sl<0){ const k=1-0.05*sl; roll*=k; d50*=k;
     notes.push("Gefälle: +5 % je 1 % laut FHB"); }
   if(B.wbKey==="ldm"&&sl>0) notes.push("Steigung bei der Landung nicht angerechnet (konservativ)");
+  [roll, d50] = perfApplyOm(B, s, roll, d50, notes);
   const F=perfFactor(B,s);
   return {ready:true,pa,rollTab,d50Tab,roll,d50,rollF:roll*F,d50F:d50*F,F,notes,infos};
 }
 
+/* ---- Dichtehöhe (Georgi 18.10.2026) — nur zur Information: die AFM-/POH-Tabellen rechnen mit Druckhöhe und OAT ----
+   ISA-Standardatmosphäre, trockene Luft: Dichteverhältnis aus Druckhöhe (wie in der Streckenrechnung) und OAT,
+   daraus die Höhe gleicher Dichte. Die Faustformel PA + 120 ft je °C über ISA liegt bei Wärme 40–200 ft höher
+   (Platzhöhe bis 3000 ft, bis 35 °C), bei Kälte etwas niedriger. */
+function densAlt(pa, oat){
+  if (!Number.isFinite(pa) || !Number.isFinite(oat) || oat <= -273) return null;
+  const k = 6.8755856e-6, n = 5.2558797, base = 1 - k * pa;
+  if (!(base > 0)) return null;
+  const sigma = Math.pow(base, n) * 288.15 / (oat + 273.15);
+  return {da: Math.round((1 - Math.pow(sigma, 1 / (n - 1))) / k / 10) * 10, isa: oat - (15 - 0.0019812 * pa)};
+}
+function densAltTxt(pa, oat){
+  const D = densAlt(pa, oat); if (!D) return null;
+  const dv = Math.round(D.isa);
+  return {da: fmt0(D.da), isa: `ISA ${dv > 0 ? "+" : dv < 0 ? "−" : "±"}${Math.abs(dv)} °C`, raw: D};
+}
+function perfDensAlt(key){
+  const ac = AIRCRAFT[state.callsign], B = ac.perf && ac.perf[key]; if (!B) return null;
+  const s = perfEff(key); if (perfIssues(B, s).length) return null;
+  const r = B.nomo ? perfComputeNomo(B, s, ac) : perfCompute(B, s);
+  return r && r.pa != null ? densAltTxt(r.pa, num(s.oat)) : null;
+}
 function perfCompute(B, s){
   const elev = num(s.elev), qnhIn = num(s.qnh), oat = num(s.oat);
-  if (!isFinite(elev) || !isFinite(oat)) return { ready:false };
-  const qnh = isFinite(qnhIn) ? qnhIn : 1013;
+  /* Platzhöhe, QNH und OAT sind Pflicht: ohne sie keine Berechnung (Number.isFinite — isFinite(null) wäre true) */
+  if (!Number.isFinite(elev) || !Number.isFinite(oat) || !Number.isFinite(qnhIn)) return { ready:false };
+  const qnh = qnhIn;
   const pa = Math.round(elev + (1013 - qnh) * 27);
   const pas = Object.keys(B.grid).map(Number).sort((x,y)=>x-y);
   const ts  = B.temps;
@@ -3523,8 +3728,12 @@ function perfCompute(B, s){
   const conv = B.unitFt ? 0.3048 : 1;
   const bil = k => W4.reduce((s, [c, w]) => s + w * c[k], 0) * conv;
   const rollTab = bil(0), d50Tab = bil(1);
-  let roll = rollTab, d50 = d50Tab;
-  const notes = [];
+  /* Startklappen (C182R): Faktor auf die Tabellenwerte, vor allen weiteren Korrekturen und vor F */
+  const FL = perfFlap(B, s), kFl = FL.k || 1;
+  const rollB = rollTab * kFl, d50B = d50Tab * kFl;
+  let roll = rollB, d50 = d50B;
+  const notes = [], infos = [];
+  if (B.flaps) infos.push(kFl !== 1 ? `Startklappen ${FL.v}°: POH Fig. 5-4 (Klappen 20°) × ${String(kFl).replace(".", ",")} = ${fmt0(rollB)} / ${fmt0(d50B)} m (POH S. 4-16)` : "Startklappen 20°: Kurzstart, Werte direkt aus POH Fig. 5-4");
   if (clamped) notes.push("Eingabe unter Tabellenminimum — konservativ mit dem Tabellenrand gerechnet");
   /* Wind */
   const w = (num(s.wind) ?? 0);
@@ -3541,14 +3750,19 @@ function perfCompute(B, s){
     roll *= (1 + f); d50 *= (1 + f);
   }
   /* Belag */
-  if (s.surf !== B.basis){ roll += B.altPct * rollTab; d50 += B.altPct * rollTab; }
+  if (s.surf !== B.basis){ roll += B.altPct * rollB; d50 += B.altPct * rollB; }
   /* Neigung */
   const sl = (num(s.slope) ?? 0);
-  if (B.slopePct != null && sl){ roll += B.slopePct * sl * rollTab; d50 += B.slopePct * sl * rollTab; }
-  else if (B.slopePct == null && sl) notes.push("Neigungskorrektur im POH nicht vorgesehen — nicht angewendet");
+  if (B.slopePct != null && sl){ roll += B.slopePct * sl * rollB; d50 += B.slopePct * sl * rollB; }
+  else if (B.slopePct == null && sl){
+    const adv = B.kind === "ldg" ? -sl : sl;   /* ungünstig: Start bergauf, Landung bergab */
+    if (adv > 0){ const k = Math.pow(1.05, adv); roll *= k; d50 *= k; notes.push(`Neigung ${String(Math.abs(sl)).replace(".", ",")} %: × ${k.toFixed(2).replace(".", ",")} (OM-C 3.1, kein POH-Wert)`); }
+    else notes.push("Neigung in günstiger Richtung — nicht angerechnet (konservativ)");
+  }
   roll = Math.max(0, roll); d50 = Math.max(0, d50);
+  [roll, d50] = perfApplyOm(B, s, roll, d50, notes);
   const F = perfFactor(B, s);
-  return { ready:true, pa, rollTab, d50Tab, roll, d50, rollF:roll*F, d50F:d50*F, F, notes };
+  return { ready:true, pa, rollTab, d50Tab, roll, d50, rollF:roll*F, d50F:d50*F, F, notes, infos, flap: B.flaps ? FL : null };
 }
 
 /* Nach dem Wetterabruf automatisch: Pisten laden, Wetter übernehmen, günstigste Piste vorwählen.
@@ -3599,9 +3813,11 @@ async function perfWxClick(key){
   const has = state.wx && ((state.wx.metars && state.wx.metars[ic]) || (state.wx.model && state.wx.model[ic]));
   const fut = perfLeadMin(perfTarget(key)) >= 120;
   PERF_WX[key] = "busy"; render();
+  const own = !!(state.perf && state.perf[key] && state.perf[key].wxOwn);
   try{
     if (!has && !fut) await loadWeather();
-    await applyMetar(key);
+    if (own) await applyMetar(key);          /* eigene Werte → dieses Wetter übernehmen */
+    else await perfAutoAll();                /* noch kein Wetter → wie „Abrufen“: Wetter, Pisten, Pistenvorschlag */
   }catch(e){ /* Meldung steht in der Quellenzeile */ }
   PERF_WX[key] = "done"; render();
   setTimeout(() => { if (PERF_WX[key] === "done"){ PERF_WX[key] = ""; render(); } }, 2500);
@@ -3617,7 +3833,7 @@ function renderPerf(ac){
   noteEl.style.display = "none";
   if (!state.perf) state.perf = initPerf(state.callsign);
   perfSyncStation();
-  const rwyBar = `<div class="pf-top"><button type="button" id="btnRwy">Pisten laden</button><button class="qm" type="button" data-help="Pisten aus der OurAirports-Datenbank (je Platz gespeichert): Richtung aus der Kennung, Start = Gesamtlänge, Landung = abzüglich versetzter Schwelle — nur Näherungen, TORA/LDA laut AIP selbst eintragen. Platzhöhe: eingebettete Flugplatzdatenbank (OurAirports), sonst Geländemodell am ARP. Nach „Abrufen“ im Wetter-Abschnitt werden Pisten geladen, OAT, QNH und Wind übernommen und die Piste mit dem meisten Gegenwind vorgewählt — selbst eingetragene Werte bleiben stehen. Wind wird als Richtung/Stärke übernommen; Gegen-, Rücken- und Seitenwind rechnet die App zur gewählten Piste. Seitenwind wird gegen den demonstrierten Wert aus dem Flughandbuch geprüft (Warnung, keine Grenze).">?</button><span class="hint">${esc(rwyMsg)}</span></div>`;
+  const rwyBar = `<div class="pf-top"><button class="qm" type="button" data-help="Pisten aus der OurAirports-Datenbank (je Platz gespeichert): Richtung aus der Kennung, Start = Gesamtlänge, Landung = abzüglich versetzter Schwelle — nur Näherungen, TORA/LDA laut AIP selbst eintragen. Platzhöhe: eingebettete Flugplatzdatenbank (OurAirports), sonst Geländemodell am ARP. Nach „Abrufen“ im Wetter-Abschnitt — und nach einem Wechsel von DEP/DEST, wenn im Plan schon Wetter abgerufen wurde — werden Pisten geladen, OAT, QNH und Wind übernommen und die Piste mit dem meisten Gegenwind vorgewählt — selbst eingetragene Werte bleiben stehen. Wind wird als Richtung/Stärke übernommen; Gegen-, Rücken- und Seitenwind rechnet die App zur gewählten Piste. Seitenwind wird gegen den demonstrierten Wert aus dem Flughandbuch geprüft (Warnung, keine Grenze).">?</button><span class="hint">${esc(rwyMsg)}</span></div>`;
   const li = (ok, txt) => `<li class="${ok?"ok":"bad"}">${ok?"✔":"✘"} ${txt}</li>`;
   const fmtW = s => { const wk = num(s.wkt); if (wk == null) return "–"; const g = num(s.wgust);
     return (s.wvrb ? "VRB" : (num(s.wdir) != null ? String(Math.round(num(s.wdir))).padStart(3,"0") : "???")) + "/" + Math.round(wk) + (g != null ? "G" + Math.round(g) : ""); };
@@ -3636,27 +3852,36 @@ function renderPerf(ac){
       return `<option value="${esc(rw.id)}"${selRw === rw ? " selected" : ""}>${esc(rw.id)}${L ? " · " + L + " m" : ""}${rw.surf ? " · " + esc(rw.surf) : ""}${c && !c.vrb ? ` · ${c.head >= 0 ? "Gegenwind " + c.head : "Rückenwind " + (-c.head)} kt` : ""}${best && best.rw === rw ? " ★" : ""}</option>`; }).join("");
     const rwSel = rws.length
       ? `<label class="pf-f"><span>Piste</span><select data-rwsel="${key}">${selRw ? "" : `<option value="">— wählen —</option>`}${opts}</select></label>`
-      : `<label class="pf-f"><span>Piste</span><select disabled><option>erst „Pisten laden“</option></select></label>`;
+      : `<label class="pf-f"><span>Piste</span>${ic && ic.length === 4
+          ? (rc ? `<select disabled><option>keine Pisten in OurAirports — ${lbl} laut AIP eintragen</option></select>`
+                : `<button type="button" data-rwyload="1" title="Pisten aus OurAirports laden (geschieht sonst automatisch mit dem Wetterabruf)">${/nicht abrufbar/.test(rwyMsg) ? "Erneut laden" : "Pisten laden"}</button>`)
+          : `<select disabled><option>erst Platz eintragen</option></select>`}</label>`;
     /* Wetter-Knopf: Quelle je nach Vorlauf */
     const hasRaw = ic && state.wx && state.wx.metars && state.wx.metars[ic];
     const hasMdl = ic && state.wx && state.wx.model && state.wx.model[ic];
     const fut = ic && perfLeadMin(perfTarget(key)) >= 120;
     const wxSrc = fut ? `Modell zur ${key === "to" ? "Abflug" : "Lande"}zeit` : (hasRaw || !hasMdl ? "METAR" : "Modellwetter");
-    const wxBtn = `<button type="button" class="pf-wx${PERF_WX[key] === "done" ? " pf-done" : ""}" data-metar="${key}"${ic && ic.length === 4 ? "" : " disabled"}>${PERF_WX[key] === "busy" ? "lädt …" : PERF_WX[key] === "done" ? "✓ übernommen" : "Wetter übernehmen"}</button>`;
+    const wxApplied = !!s.metarInfo && !/^⚠/.test(s.metarInfo) && !s.wxOwn;
+    const wxLab = s.wxOwn ? (fut ? "Vorhersage übernehmen" : (hasRaw || !hasMdl ? "METAR übernehmen" : "Modellwetter übernehmen")) : "Wetter abrufen";
+    const wxTip = s.wxOwn ? "Eigene Wetterwerte durch das abgerufene Wetter ersetzen" : "Wetter abrufen und übernehmen — Pisten laden, Piste mit dem meisten Gegenwind vorwählen";
+    const wxBtn = (PERF_WX[key] === "busy" || PERF_WX[key] === "done")
+      ? `<button type="button" class="pf-wx${PERF_WX[key] === "done" ? " pf-done" : ""}" disabled>${PERF_WX[key] === "busy" ? "lädt …" : "✓ übernommen"}</button>`
+      : (ic && ic.length === 4 && !wxApplied ? `<button type="button" class="pf-wx" data-metar="${key}" title="${wxTip}">${wxLab}</button>` : "");
     /* Bedingungen in einer Zeile */
     const X = ac.xwind;
     const xwBad = pw && X && Math.max(pw.cross, pw.crossG || 0) > X.kt;
     const windTxt = pw
       ? `Wind <b>${fmtW(s)}</b> → <b>${pw.vrb ? "variabel, ohne Gegenwind gerechnet" : (pw.head >= 0 ? "Gegenwind " + pw.head : "Rückenwind " + (-pw.head)) + " kt"}</b>, Seitenwind <b class="${xwBad ? "pf-warn" : ""}">${pw.cross}${pw.crossG != null && pw.crossG > pw.cross ? "–" + pw.crossG : ""} kt</b>${X ? ` <span class="pf-mut">(dem. ${X.kt})</span>` : ""}`
       : (num(s.wkt) != null ? `Wind <b>${fmtW(s)}</b> <span class="pf-mut">— Piste wählen</span>` : (String(s.wind ?? "").trim() !== "" && num(s.wind) !== 0 ? `Wind-Komponente <b>${s.wind} kt</b>` : `Wind <b>–</b>`));
-    const cond = `PA <b>${r && r.pa != null ? fmt0(r.pa) : "–"} ft</b> · <b>${esc(sEff.oat || "–")} °C</b> · ${windTxt} · ${esc(sEff.surf || "–")} · F <b>${String(perfFactor(B, sEff)).replace(".", ",")}</b>${r && r.mass ? ` · ${fmt0(r.mass)} kg` : ""}`;
+    const DAt = r && r.pa != null ? densAltTxt(r.pa, num(sEff.oat)) : null;
+    const cond = `PA <b>${r && r.pa != null ? fmt0(r.pa) : "–"} ft</b> · <b>${esc(sEff.oat || "–")} °C</b> · ${DAt ? `Dichtehöhe <b>${DAt.da} ft</b> <span class="pf-mut">(${DAt.isa})</span>` : "Dichtehöhe <b>–</b>"} · ${windTxt} · ${esc(sEff.surf || "–")}${(sEff.cond || "trocken") !== "trocken" ? ", " + esc(sEff.cond) : ""}${B.flaps ? ` · <b>${esc(perfFlapTxt(B, sEff))}</b>` : ""} · F <b>${String(perfFactor(B, sEff)).replace(".", ",")}</b>${r && r.mass ? ` · ${fmt0(r.mass)} kg` : ""}`;
     /* Ergebnis */
     let res;
     const rwyVal = num(s.rwy);
     if (PI.length){
       res = `<div class="pf-res bad"><div class="pf-big">✘ <b>Eingaben ungültig</b></div><ul class="chk">${PI.map(t => li(false, esc(t))).join("")}</ul></div>`;
     } else if (!r || !r.ready){
-      res = `<div class="pf-res open">Platzhöhe und OAT nötig — „Pisten &amp; Platzhöhen laden“ und „Wetter übernehmen“</div>`;
+      res = `<div class="pf-res open">Platzhöhe, QNH und OAT nötig — oben im Wetter-Abschnitt „Abrufen“ (oder hier „Wetter abrufen“) oder unter „Anpassen“ selbst eintragen</div>`;
     } else if (r.err){
       res = `<div class="pf-res bad"><div class="pf-big">✘ <b>keine Berechnung</b></div><div class="pf-of">${esc(r.err)}${best && selRw !== best.rw ? ` — Piste ${esc(best.rw.id)} wählen` : ""}</div></div>`;
     } else {
@@ -3686,28 +3911,29 @@ function renderPerf(ac){
     const adj = `<details class="pf-adj" data-padj="${key}"${PERF_ADJ[key] ? " open" : ""}><summary>Anpassen</summary>
       <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(118px,1fr));margin-top:8px">
         ${num2("elev", "Platzhöhe ft", sEff.elevAuto ? sEff.elev : "z. B. 295", "", sEff.elevAuto ? (apElevDb(ic) != null ? `Automatisch: Flugplatzdatenbank (OurAirports) für ${esc(ic)}` : `Automatisch: Geländemodell am ARP ${esc(ic)}`) + " — eintragen zum Überschreiben · AIP maßgeblich" : "")}
-        ${num2("qnh", "QNH hPa", "1013")}
-        ${num2("oat", "OAT °C", "15")}
+        ${num2("qnh", "QNH hPa", "z. B. 1013")}
+        ${num2("oat", "OAT °C", "z. B. 15")}
         ${num2("wdir", "Wind aus °", "z. B. 250")}
         ${num2("wkt", "Wind kt", "0")}
         ${num2("wgust", "Böen kt", "–")}
         <div class="field"><label>Belag</label><select data-pb="${key}" data-pk="surf">${surfOk ? "" : `<option value="" selected disabled>— wählen —</option>`}${opt(B.basis)}${B.alt ? opt(B.alt) : ""}</select></div>
-        ${num2("slope", "Neigung %", "0", B.slopePct == null && !B.nomo, (B.slopePct == null && !B.nomo) ? "im Flughandbuch nicht vorgesehen" : (B.nomo ? "positiv = bergauf · FHB: ±5 % je 1 % (nur ungünstige Richtung angerechnet)" : "positiv = bergauf"))}
-        ${num2("factor", "Faktor F", String(B.factor).replace(".", ","), "", "Multiplikator auf die korrigierten Strecken — Vorbelegung aus AFM bzw. Betreiberzuschlag")}
+        <div class="field"><label title="Nicht benutzen: stehendes Wasser, Schneematsch, Schnee, Eis, Gras über 20 cm (OM-C 3.1)">Bahnzustand</label><select data-pb="${key}" data-pk="cond">${(perfPaved(s.surf) ? COND_OPTS.paved : COND_OPTS.grass).map(v => `<option${(s.cond || "trocken") === v ? " selected" : ""}>${v}</option>`).join("")}</select></div>
+        ${num2("slope", "Neigung %", "0", "", (B.slopePct == null && !B.nomo) ? "positiv = bergauf · kein POH-Wert: × 1,05 je 1 % in ungünstiger Richtung (OM-C 3.1)" : (B.nomo ? "positiv = bergauf · FHB: ±5 % je 1 % (nur ungünstige Richtung angerechnet)" : "positiv = bergauf"))}
+        ${num2("factor", "Faktor F", String(B.factor).replace(".", ","), "", "Multiplikator auf die korrigierten Strecken — Vorgabe nach OM-C 3.1 (Ausbildung der ATO). Kleinere Werte (mindestens 1,0), z. B. für Charter, werden gerechnet und hier gekennzeichnet")}
         ${num2("rwyDir", "Bahnrichtung °", "z. B. 260", "", "Wird durch die Pistenwahl gesetzt")}
-      </div></details>`;
+      </div><div class="pf-mut" style="margin-top:6px">Nicht benutzen (OM-C 3.1): stehendes Wasser, Schneematsch, Schnee oder Eis auf der Bahn; Gras über 20 cm.</div></details>`;
     return `<div class="pf-blk">
       <div class="pf-h">${title} <b>${esc(ic || "—")}</b></div>
-      <div class="pf-row">${rwSel}
+      <div class="pf-row">${rwSel}${B.flaps ? `<label class="pf-f"><span>Startklappen</span><select data-pb="${key}" data-pk="flaps">${B.flaps.opts.map(([v, l]) => `<option value="${v}"${perfFlap(B, s).v === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label>` : ""}
         <label class="pf-f pf-num"><span>${lbl} laut AIP</span><input inputmode="decimal" data-pb="${key}" data-pk="rwy" value="${esc(s.rwy ?? "")}" placeholder="m"></label>
-        <div class="pf-wxw">${wxBtn}<small class="pf-mut">${wxSrc}</small></div>
+        ${wxBtn ? `<div class="pf-wxw">${wxBtn}<small class="pf-mut">${wxSrc}</small></div>` : ""}
       </div>
       ${best && selRw !== best.rw && !best.c.vrb ? `<div class="pf-hint">★ Vorschlag: Piste ${esc(best.rw.id)} (${best.c.head >= 0 ? "Gegenwind " + best.c.head : "Rückenwind " + (-best.c.head)} kt)</div>` : ""}
-      <div class="pf-cond">${cond}</div>
-      <div class="pf-src${/^⚠/.test(s.metarInfo || "") ? " pf-warn" : ""}">${s.metarInfo ? esc(s.metarInfo) : (s.wxOwn ? "Wetterwerte selbst eingetragen" : "Noch kein Wetter übernommen — oben „Abrufen“ oder hier „Wetter übernehmen“")}</div>
+      <div class="pf-cond">${cond}</div>${perfFactorLow(B, sEff) ? `<div class="pf-src pf-warn">⚠ ${esc(perfFactorLow(B, sEff))}</div>` : ""}
+      <div class="pf-src${/^⚠/.test(s.metarInfo || "") ? " pf-warn" : ""}">${s.wxOwn ? "Wetterwerte selbst eingetragen" + (s.metarInfo ? " — zuletzt übernommen: " + esc(s.metarInfo) : "") : (s.metarInfo ? esc(s.metarInfo) : "Noch kein Wetter übernommen — oben im Wetter-Abschnitt „Abrufen“ oder hier „Wetter abrufen“")}</div>
       ${adj}
       ${res}
-      <details class="hnt pf-det"><summary>Details &amp; Quelle</summary><div class="wb-note">${r && r.ready && !r.err ? `Druckhöhe ${fmt0(r.pa)} ft · Diagramm Roll / ${B.nomo ? "15 m" : "50 ft"} ${fmt0(r.rollTab)} / ${fmt0(r.d50Tab)} m · korrigiert ${fmt0(r.roll)} / ${fmt0(r.d50)} m · × Faktor ${String(r.F).replace(".", ",")} → ${fmt0(r.rollF)} / ${fmt0(r.d50F)} m<br>` : ""}${(r && r.infos || []).map(n => esc(n)).join(" · ")}${r && r.infos && r.infos.length ? "<br>" : ""}${B.note}</div></details>
+      <details class="hnt pf-det"><summary>Details &amp; Quelle</summary><div class="wb-note">${DAt ? `Dichtehöhe ${DAt.da} ft (${DAt.isa}; ISA-Standardatmosphäre, trockene Luft — nur Information, die Tabellen rechnen mit Druckhöhe und OAT)<br>` : ""}${r && r.ready && !r.err ? `Druckhöhe ${fmt0(r.pa)} ft · Diagramm Roll / ${B.nomo ? "15 m" : "50 ft"} ${fmt0(r.rollTab)} / ${fmt0(r.d50Tab)} m · korrigiert ${fmt0(r.roll)} / ${fmt0(r.d50)} m · × Faktor ${String(r.F).replace(".", ",")} → ${fmt0(r.rollF)} / ${fmt0(r.d50F)} m<br>` : ""}${(r && r.infos || []).map(n => esc(n)).join(" · ")}${r && r.infos && r.infos.length ? "<br>" : ""}${B.note}</div></details>
     </div>`;
   };
   box.innerHTML = rwyBar + blk("to", "Start") + blk("ldg", "Landung");
@@ -3860,18 +4086,18 @@ function renderFuel(ac, tripMin, altnAutoMin, issues){
   const row = (ph, tm, rate, lit, hint) =>
     `<tr><td>${ph}${hint?` <small style="color:var(--mut)">${hint}</small>`:""}</td>`+
     `<td class="calc">${tm==null?"–":fmt0(tm)+" min"}</td>`+
-    `<td class="calc">${rate==null?"fix":f1(rate)+" l/h"}</td>`+
-    `<td class="calc">${f1(lit)} l</td></tr>`;
+    `<td class="calc">${rate==null?"fix":f1(rate)+" l/h"+galRate(ac, rate)}</td>`+
+    `<td class="calc">${f1(lit)} l${galSm(ac, lit)}</td></tr>`;
   const li = (ok, txt) => `<li class="${ok?"ok":"bad"}">${ok?"✔":"✘"} ${txt}</li>`;
   let checks = "";
   const INC = issues.length > 0;
   if (INC) checks += li(false, `Kraftstoffbedarf nicht ermittelbar — ${esc(issues.join(" · "))}`);
   if (fob != null && ac.maxFuelL != null)
-    checks += li(fob <= ac.maxFuelL, `Kraftstoff-Vorrat ${f1(fob)} l ${fob<=ac.maxFuelL?"≤":">"} ausfliegbare Tankmenge ${f1(ac.maxFuelL)} l`);
+    checks += li(fob <= ac.maxFuelL, `Kraftstoff-Vorrat ${f1(fob)} l${galSfx(ac, fob)} ${fob<=ac.maxFuelL?"≤":">"} ausfliegbare Tankmenge ${f1(ac.maxFuelL)} l${galSfx(ac, ac.maxFuelL)}`);
   if (extra != null && !INC)
     checks += li(extra >= 0, extra >= 0
-      ? `Vorrat ≥ Mindest-Kraftstoffbedarf — Extra-Kraftstoff ${f1(extra)} l`
-      : `Vorrat liegt ${f1(-extra)} l UNTER dem Mindest-Kraftstoffbedarf — Flug so nicht antreten (OM-C 3.2.4)`);
+      ? `Vorrat ≥ Mindest-Kraftstoffbedarf — Extra-Kraftstoff ${f1(extra)} l${galSfx(ac, extra)}`
+      : `Vorrat liegt ${f1(-extra)} l${galSfx(ac, -extra)} UNTER dem Mindest-Kraftstoffbedarf — Flug so nicht antreten (OM-C 3.2.4)`);
   const safeTxt = safeMin == null ? "–" : `${fmtT(safeMin)} h`;
   box.innerHTML = `
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
@@ -3882,20 +4108,20 @@ function renderFuel(ac, tripMin, altnAutoMin, issues){
         </select></div>
       <div class="field"><label>An- &amp; Abflug min <small>(min. 10)</small></label><input inputmode="decimal" data-fu="appMin" value="${esc(f.appMin)}" placeholder="10"></div>
       <div class="field"><label>Alternate min <small>(leer = aus Alternate-Leg)</small></label><input inputmode="decimal" data-fu="altnMin" value="${esc(f.altnMin)}" placeholder="${altnAutoMin!=null?fmt0(altnAutoMin):"0"}"></div>
-      <div class="field"><label>Kraftstoff-Vorrat l <small>(Stäbchen)</small></label><input inputmode="decimal" data-fu="fob" value="${esc(f.fob)}" placeholder="z. B. 80" title="Einmal eintragen genügt: geht automatisch als Startkraftstoff in die Massenberechnung ein, solange dort nichts anderes steht"></div>
+      <div class="field"><label>Kraftstoff-Vorrat l <small>(Dipstick/Tankanzeige)</small></label><input inputmode="decimal" data-fu="fob" value="${esc(f.fob)}" placeholder="z. B. 80" title="Einmal eintragen genügt: geht automatisch als Startkraftstoff in die Massenberechnung ein, solange dort nichts anderes steht">${galOn(ac) ? `<small class="gal galhint">${fob != null ? `= ${galTxt(fob)} US gal` : "&nbsp;"}</small>` : ""}</div>
     </div>
     ${cr == null ? `<div class="wb-note" style="margin-top:10px">Für die gewählte Leistungseinstellung ist kein Verbrauchswert hinterlegt.</div>` : `
     <div class="tblwrap fuelwrap" style="margin-top:12px"><table class="fueltbl"><thead><tr><th>Phase</th><th>Zeit</th><th>Rate</th><th>Menge</th></tr></thead><tbody>
       ${row("Anlassen, Rollen", null, null, TAXI, "OM-Pauschale")}
       ${row("Steigflug", climbMin + FC.stepsMin, climbRate, FC.climbLAll, climbHint + FC.stepHint)}
-      ${FC.exMin ? row("Reiseflug Strecke", Math.max(0, cruiseMin - FC.exMin), cr, cr != null ? Math.max(0, cruiseMin - FC.exMin)/60*cr : null, "Nav Log abzügl. Steigzeit") + row("Platzrunden / Airwork", FC.exMin, cr, FC.exL, "mit Reiseverbrauch") : row("Reiseflug", cruiseMin, cr, cruiseL, "Nav Log abzügl. Steigzeit")}
+      ${FC.exMin ? row("Reiseflug Strecke", Math.max(0, cruiseMin - FC.exMin), cr, cr != null ? Math.max(0, cruiseMin - FC.exMin)/60*cr : null, "Nav Log abzügl. Steigzeit") + row("Platzrunden, Übungsanflüge, Airwork", FC.exMin, cr, FC.exL, "mit Reiseverbrauch") : row("Reiseflug", cruiseMin, cr, cruiseL, "Nav Log abzügl. Steigzeit")}
       ${row("An- &amp; Abflug", appMin, cr, appL)}
       ${row("Alternate", altnMin, cr, altnL, altnOverride?"":"aus Alternate-Leg")}
       ${row("Final Reserve ("+(f.res==="night"?"VFR Nacht/IFR":"VFR Tag")+")", frfMin, cr, frfL)}
       ${row("Zusatzreserve (Additional Reserve)", addMin, cr, addL, "bei Verzögerungen nutzbar")}
-      <tr><td><b>Mindest-Kraftstoffbedarf</b></td><td></td><td></td><td class="calc${INC?" incl":""}"><b>${INC ? "unvollständig" : f1(mfr) + " l"}</b></td></tr>
-      <tr><td>Kraftstoff-Vorrat (Fuel On Board)</td><td></td><td></td><td class="calc">${f1(fob)} l</td></tr>
-      <tr><td>Extra-Kraftstoff</td><td></td><td></td><td class="calc${INC?" incl":""}">${INC ? "–" : f1(extra) + " l"}</td></tr>
+      <tr><td><b>Mindest-Kraftstoffbedarf</b></td><td></td><td></td><td class="calc${INC?" incl":""}"><b>${INC ? "unvollständig" : f1(mfr) + " l"}</b>${INC ? "" : galSm(ac, mfr)}</td></tr>
+      <tr><td>Kraftstoff-Vorrat (Fuel On Board)</td><td></td><td></td><td class="calc">${f1(fob)} l${galSm(ac, fob)}</td></tr>
+      <tr><td>Extra-Kraftstoff</td><td></td><td></td><td class="calc${INC?" incl":""}">${INC ? "–" : f1(extra) + " l" + galSm(ac, extra)}</td></tr>
       <tr><td>Sichere Flugzeit <small style="color:var(--mut)">(Vorrat − Rollen − Final Reserve) ÷ Reiseverbrauch</small></td><td></td><td></td><td class="calc"><b>${safeTxt}</b></td></tr>
       ${(() => { const tas = safeMin != null ? cruiseTas(ac, cruiseAlt ?? 0) : null;
         return tas != null ? `<tr><td>Reichweite <small style="color:var(--mut)">Nullwind, ${state.pwr} ${ac.cruise.unit}${cruiseAlt!=null?" in "+fmt0(cruiseAlt)+" ft":""}</small></td><td></td><td></td><td class="calc">${fmt0(safeMin/60*tas)} NM</td></tr>` : ""; })()}
@@ -4017,7 +4243,7 @@ function buildKneeSheet(){
     return `<td class="hd lgc" rowspan="${rs}"><b>${fmtHdg(c.mh)}</b><small>${fmtHdg(c.mc)}</small></td>`+
       `<td class="al lgc" rowspan="${rs}"><b>${f0(A[k])}</b><small>${msa != null ? f0(msa) : ""}</small></td>`+
       `<td class="nm lgc" rowspan="${rs}"><b>${f1(c.dist)}</b><small>${c.gs ? f0(c.gs) : ""}</small></td>`+
-      `<td class="tl lgc" rowspan="${rs}"><b>${m != null ? tH(m) : "–"}</b><small>${INC ? "–" : f0(restFuel(k)) + " l"}</small></td>`;   /* Rest-Zeit bis Ziel / Kraftstoff an Bord */
+      `<td class="tl lgc" rowspan="${rs}"><b>${m != null ? tH(m) : "–"}</b><small>${INC ? "–" : f0(restFuel(k)) + " l"}</small>${!INC && galOn(ac) ? `<small class="gal">${galTxt(restFuel(k), 0)} gal</small>` : ""}</td>`;   /* Rest-Zeit bis Ziel / Kraftstoff an Bord */
   };
   /* keine eigene Fuel-Spalte mehr: Soll-Restmenge steht klein unter der Leg-Zeit; ETO/ATO bekommen die Breite */
   const COLS = `<colgroup><col style="width:20%"><col style="width:12.5%"><col style="width:10.5%"><col style="width:10%"><col style="width:10%"><col style="width:11.5%"><col style="width:12.75%"><col style="width:12.75%"></colgroup>`;
@@ -4093,7 +4319,8 @@ function buildKneeSheet(){
 
   /* Flug-Infos */
   const atis = `<div class="atis"><span class="al2">ATIS</span><span><i>Info</i><span class="b s"></span></span><span><i>Piste</i><span class="b s"></span></span><span><i>Wind</i><span class="b m"></span></span><span><i>Sicht</i><span class="b s"></span></span><span><i>QNH</i><span class="b m"></span></span></div>`;
-  const bh = (t, fq = true) => `<div class="bh"><span>${t}</span>${fq ? `<span class="fq">Freq <span class="b m"></span></span>` : ""}</div>`;
+  const bh = (t, fq = true, rt = "") => `<div class="bh"><span>${t}</span>${fq ? `<span class="fq">Freq <span class="b m"></span></span>` : rt}</div>`;
+  const daK = key => { if (!(ac.perf && ac.perf[key])) return ""; const D = perfDensAlt(key); return `<span class="da">Dichtehöhe <b>${D ? D.da + " ft" : "–"}</b>${D ? ` · ${D.isa}` : ""}</span>`; };
   const perfLine = key => {
     const B = ac.perf && ac.perf[key]; if (!B) return "";
     const s = perfEff(key), bad = perfIssues(B, s);
@@ -4104,20 +4331,21 @@ function buildKneeSheet(){
     const rd = num(s.rwyDir);
     const xw = perfXwCk(ac, state.perf[key] || {});
     const rid = (state.perf[key] || {}).rwyId;
-    return `<div class="kv">Platz <b>${esc(s.elev || "–")} ft</b> · Piste <b>${rid ? esc(rid) : (rd != null ? String(Math.round(rd/10)).padStart(2,"0") : "__")}</b> · ${lbl} <b>${isFinite(rwy) ? f0(rwy) : "___"} m</b> · Roll <b>${f0(r && r.ready && !r.err ? r.rollF : null)}</b> / 50 ft <b>${f0(need2)} m</b> ${ck ? ckSym(ck) : ""}</div>${xw ? `<div class="warn">⚠ ${esc(xw.txt)}</div>` : ""}`;
+    return `<div class="kv">Platz <b>${esc(s.elev || "–")} ft</b> · Piste <b>${rid ? esc(rid) : (rd != null ? String(Math.round(rd/10)).padStart(2,"0") : "__")}</b> · ${lbl} <b>${isFinite(rwy) ? f0(rwy) : "___"} m</b> ${B.flaps ? ` · Kl. <b>${esc(perfFlap(B, s).v)}°</b>` : ""} · Roll <b>${f0(r && r.ready && !r.err ? r.rollF : null)}</b> / 50 ft <b>${f0(need2)} m</b> ${ck ? ckSym(ck) : ""}</div>${xw ? `<div class="warn">⚠ ${esc(xw.txt)}</div>` : ""}`;
   };
   /* Frequenz von DEP/DEST steht links im Navlog — hier nur noch bei ALTN */
-  let R = `<div class="blk">${bh("DEP " + esc(U(h.dep)), false)}${atis}${perfLine("to")}</div>`;
-  R += `<div class="blk">${bh("DEST " + esc(U(h.dest)), false)}${atis}${perfLine("ldg")}</div>`;
+  let R = `<div class="blk">${bh("DEP " + esc(U(h.dep)), false, daK("to"))}${atis}${perfLine("to")}</div>`;
+  R += `<div class="blk">${bh("DEST " + esc(U(h.dest)), false, daK("ldg"))}${atis}${perfLine("ldg")}</div>`;
   const av = altnEff();
   R += `<div class="blk">${bh("ALTN " + (esc(U(h.altn || state.altn.route)) || "—"))}`+
-    `<div class="kv">MH <b>${fmtHdg(ca.mh)}</b> · <b>${f1(ca.dist)} NM</b> · <b>${tH(ca.min)}</b> · ALT ${esc(f0(num(av.alt)))} ft · <b>${FC && !INC ? f1(FC.altnL) + " l" : "–"}</b></div></div>`;
+    `<div class="kv">MH <b>${fmtHdg(ca.mh)}</b> · <b>${f1(ca.dist)} NM</b> · <b>${tH(ca.min)}</b> · ALT ${esc(f0(num(av.alt)))} ft · <b>${FC && !INC ? f1(FC.altnL) + " l" + galSfx(ac, FC.altnL) : "–"}</b></div></div>`;
   let fu = `<div class="blk"><div class="bh"><span>Kraftstoff</span></div>`;
   if (!FC) fu += `<div class="kv">keine Verbrauchsdaten</div>`;
   else if (INC) fu += `<div class="warn">✘ Bedarf nicht ermittelt — Flugplan unvollständig</div>`;
   else {
     /* nur die Übersicht — die Soll-Werte stehen links an jedem Wegpunkt */
     fu += `<div class="kv">Vorrat <b>${f1(F0)} l</b> · Mindest <b>${f1(FC.mfr)} l</b> · Extra <b>${f1(FC.extra)} l</b> · FRF <b>${f1(FC.frfL)} l</b> · Zusatz <b>${f1(FC.addL)} l</b></div>`;
+    if (galOn(ac)) fu += `<div class="kv">in US gal: Vorrat <b>${galTxt(F0)}</b> · Mindest <b>${galTxt(FC.mfr)}</b> · Extra <b>${galTxt(FC.extra)}</b> · FRF <b>${galTxt(FC.frfL)}</b> · Zusatz <b>${galTxt(FC.addL)}</b></div>`;
   }
   R += fu + `</div>`;
   const bad = (W.checks || []).filter(c => !c.ok && !c.info);
@@ -4169,6 +4397,7 @@ function buildKneeSheet(){
   .k2 .stg td.lgc{background:#fafafa;font-size:10pt}
   .k2 .stg td.hd b{font-size:14pt}
   .k2 .stg td.tl b{font-size:9.5pt}
+  .k2 .stg td.tl small.gal{display:block;color:#000;font-size:6.3pt;line-height:1}
   .k2 .stg td.fu{font-weight:700;font-size:10pt}
   .k2 .stg td.tm b{font-size:10.5pt}
   .k2 .stg td.lgx{border-top:0;border-bottom:0}
@@ -4184,6 +4413,7 @@ function buildKneeSheet(){
   .k2 .bh{font-size:9.5pt;font-weight:700;margin-bottom:.4mm;display:flex;justify-content:space-between;align-items:center}
   .k2 .bh .fq{font-size:7pt;font-weight:400;display:flex;align-items:center;gap:1mm}
   .k2 .bh .fq .b{height:5mm}
+  .k2 .bh .da{font-size:7.5pt;font-weight:400}
   .k2 .kv{font-size:8pt;margin:.5mm 0;line-height:1.2}
   .k2 .atis{display:flex;gap:1.2mm;align-items:flex-end;font-size:6.5pt;margin:.6mm 0}
   .k2 .atis>span{display:flex;flex-direction:column}.k2 .atis i{font-style:normal}
@@ -4210,8 +4440,8 @@ function buildKneeSheet(){
 
 function buildPrintSheet(){
   const ac = AIRCRAFT[state.callsign], h = state.head||{};
-  const f1 = v => v == null ? "–" : (Math.round(v*10)/10).toLocaleString("de-DE",{minimumFractionDigits:1,maximumFractionDigits:1});
   const wca1 = w => w==null ? "" : (w>=0?"+":"−") + Math.abs(w).toFixed(0);
+  const UP = x => esc(String(x || "").trim().toUpperCase());
   const calcs = effLegs().map(computeLeg);
   const totDist = calcs.reduce((s,c)=> s + (c.dist||0), 0);
   const totMinRaw = calcs.reduce((s,c)=> c.min!=null ? s+c.min : s, 0);
@@ -4221,93 +4451,97 @@ function buildPrintSheet(){
   const XPp = extraPlan(), totMin = (ADJp.tot || totMinRaw) + XPp.total;   /* inkl. Platzrunden/Airwork */
   if (TTp.tod && !TTp.tod.none) TTp.tod.startMin = totMin - TTp.tod.min;
   const N = Math.max(state.legs.length, 12);
-  /* Kopf */
-  let out = `<table class="ps-h"><colgroup><col style="width:14%"><col style="width:7%"><col style="width:12%"><col style="width:8%"><col style="width:12%"><col style="width:7%"><col style="width:12%"><col style="width:8%"><col style="width:12%"></colgroup>
-    <tr><td class="ps-title nb" rowspan="2">Flight Log</td>
-      <td class="ps-lbl">Callsign</td><td>${esc(state.callsign)}&nbsp;·&nbsp;${esc(ac.type)}</td>
-      <td class="ps-lbl">Date</td><td>${esc(fmtDateDE(h.date))}</td>
-      <td class="ps-lbl">Pilot</td><td>${esc(h.pilot||"")}</td>
-      <td class="ps-lbl">FI / CRI</td><td>${esc(h.fi||"")}</td></tr>
-    <tr><td class="ps-lbl">DEP / DEST</td><td>${esc((h.dep||"").toUpperCase())} → ${esc((h.dest||"").toUpperCase())}</td>
-      <td class="ps-lbl">ALTN</td><td>${esc((h.altn||"").toUpperCase())}</td>
-      <td class="ps-lbl">Prep. By</td><td>${esc(h.prep||"")}</td>
-      <td class="ps-lbl">PIC / Sign</td><td>${esc(h.pic||"")}</td></tr></table>`;
-  /* Clearance */
-  out += `<div class="ps-clr"><b>Clearance:</b><div class="lines"><div class="ln"></div><div class="ln"></div><div class="ln"></div></div></div>`;
-  /* ATIS + Zeiten (eine Tabelle, Zeitspalten rechts wie in der Excel) */
-  out += `<table class="ps-sec"><colgroup><col style="width:6%"><col style="width:6%"><col style="width:7%"><col style="width:5%"><col style="width:9%"><col style="width:11%"><col style="width:12%"><col style="width:6%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:1%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:4%"></colgroup>
-    <tr><th class="ps-th">ATIS</th><th class="ps-th">Code</th><th class="ps-th">Time</th><th class="ps-th">TL</th><th class="ps-th">Visibility</th><th class="ps-th">Clouds</th><th class="ps-th">Temp. / Dewpoint</th><th class="ps-th">Rwy</th><th class="ps-th">QNH</th><th class="ps-th">Trend</th><th class="ps-th">Wind</th><td class="nb"></td><td class="ps-lbl">ETD</td><td>${esc(h.etd||"")}</td><td class="ps-lbl">ATD</td><td></td></tr>
-    <tr style="height:5mm"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="nb"></td><td class="ps-lbl">ETA</td><td>${esc(h.eta||"")}</td><td class="ps-lbl">ATA</td><td></td></tr>
-    <tr style="height:5mm"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="nb"></td><td colspan="4"></td></tr></table>`;
-  /* Nav-Tabelle, gestaffelt: Wegpunkte zwischen den Legs */
-  out += `<table class="ps-sec"><colgroup><col style="width:10%"><col style="width:4.6%"><col style="width:4.6%"><col style="width:4.4%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:4.4%"><col style="width:4%"><col style="width:4.2%"><col style="width:4%"><col style="width:4.6%"><col style="width:4.6%"><col style="width:4.2%"><col style="width:4.8%"><col style="width:4.8%"><col style="width:5.4%"><col style="width:5.4%"><col></colgroup><thead>
-    <tr><th class="ps-th" rowspan="2">Route</th><th class="ps-th" rowspan="2">ALT<br>ft</th><th class="ps-th" rowspan="2">MSA<br>ft</th><th class="ps-th" rowspan="2">TAS<br>kt</th><th class="ps-th" colspan="2">WIND</th><th class="ps-th" rowspan="2">TC<br>°</th><th class="ps-th" rowspan="2">VAR<br>W+/E−</th><th class="ps-th" rowspan="2">MC<br>°</th><th class="ps-th" rowspan="2">WCA<br>R+/L−</th><th class="ps-th" rowspan="2">MH<br>°</th><th class="ps-th" colspan="2">Distanz NM</th><th class="ps-th" rowspan="2">GS<br>kt</th><th class="ps-th" colspan="2">Zeit</th><th class="ps-th" rowspan="2">ETO</th><th class="ps-th" rowspan="2">ATO</th><th class="ps-th" rowspan="2">Route / Freq.</th></tr>
-    <tr><th class="ps-th">WD</th><th class="ps-th">WS</th><th class="ps-th">Leg</th><th class="ps-th">Rest</th><th class="ps-th">Leg</th><th class="ps-th">Rest</th></tr></thead><tbody>`;
+  /* Seite 1 als EIN Raster wie im Excel-Original — alle Zeilen teilen die Spalten der Nav-Tabelle, damit keine Falte ein Feld zerschneidet.
+     Zwei Falten: (1) TAS … WCA, (2) GS + Rest-Distanz + Rest-Zeit. Sichtbar bleiben Route, ALT, MSA | MH, NM, Zeit | ETO, ATO, Freq.
+     Spalten (% der Blattbreite):  Route 10 · ALT 4,6 · MSA 4,6 | TAS 4,6 · WD 4,4 · WS 4,4 · TC 4,6 · VAR 5 · MC 4,6 · WCA 4,8 |
+     MH 4,6 · NM 5 · Zeit 5,2 | GS 4,6 · Rest NM 5 · Rest Zeit 5,2 | ETO 5,6 · ATO 5,6 · Freq 7,6
+     Faltmarken: Falte 1 Knick 51,6 % → Kante 19,2 % · Falte 2 Knick 81,2 % → Kante 66,4 % (gestrichelt = Knick, durchgezogen = bis hierhin) */
+  const W = [10,4.6,4.6, 4.6,4.4,4.4,4.6,5,4.6,4.8, 4.6,5,5.2, 4.6,5,5.2, 5.6,5.6,7.6];
+  const FOLD = `<div class="ps-fold" aria-hidden="true"><i class="fz" style="left:19.2%"></i><i class="fk" style="left:51.6%"></i><i class="fz" style="left:66.4%"></i><i class="fk" style="left:81.2%"></i></div>`;
+  const C = (n, cls, html, attr) => `<td${n > 1 ? ` colspan="${n}"` : ""}${cls ? ` class="${cls}"` : ""}${attr || ""}>${html ?? ""}</td>`;
+  const L = (n, t) => C(n, "ps-lbl", t);
+  const GAP = `<tr class="ps-gap"><td colspan="19" class="nb"></td></tr>`;
+  let out = FOLD + `<table class="ps-grid"><colgroup>${W.map(w => `<col style="width:${w}%">`).join("")}</colgroup><tbody>`;
+  /* Kopf: Formularfelder mit kleiner Beschriftung, jedes Feld genau in einer Zone —
+     links Titel/Callsign · Falte 1: Date, Pilot, FI/CRI, PIC/Sign · Mitte: DEP/DEST, ALTN · Falte 2: Prep. By · rechts: ETD/ATD, ETA/ATA, Squawk */
+  const F = (n, lbl, val, attr) => C(n, "ps-f", `<small>${lbl}</small><span>${val ?? ""}</span>`, attr);
+  out += `<tr class="ps-hr">${C(3, "ps-title nb", "Flight Log")}${F(3, "Date", esc(fmtDateDE(h.date)))}${F(4, "Pilot", esc(h.pilot||""))}`+
+    `${F(3, "DEP / DEST", `<b>${UP(h.dep)} → ${UP(h.dest)}</b>`)}${F(3, "Prep. By", esc(h.prep||""))}`+
+    `${F(1, "ETD", `<b>${esc(h.etd||"")}</b>`)}${F(1, "ATD", "")}${F(1, "Squawk", "", ' rowspan="2"')}</tr>`;
+  out += `<tr class="ps-hr">${C(3, "ps-cs", `<b>${esc(state.callsign)}</b> · ${esc(String(ac.type || "").split(" · ")[0])}`)}${F(3, "FI / CRI", esc(h.fi||""))}${F(4, "PIC / Sign", esc(h.pic||""))}`+
+    `${F(3, "ALTN", `<b>${UP(h.altn)}</b>`)}${C(3, "nb", "")}`+
+    `${F(1, "ETA", `<b>${esc(h.eta||"")}</b>`)}${F(1, "ATA", "")}</tr>`;
+  out += GAP;
+  /* Clearance / Notizen: Linien über die ganze Breite — gefaltet bleiben die sichtbaren Abschnitte zum Schreiben */
+  for (let k = 0; k < 3; k++)
+    out += `<tr class="ps-ln">${k === 0 ? C(1, "ps-clrl", "<b>Clearance /<br>Notizen</b>", ' rowspan="3"') : ""}${C(18, "ps-line", "")}</tr>`;
+  out += GAP;
+  /* Wetter: Schreibzeilen wie bei Clearance / Notizen (ATIS, METAR … frei mitschreiben) */
+  for (let k = 0; k < 3; k++)
+    out += `<tr class="ps-ln">${k === 0 ? C(1, "ps-clrl", "<b>Wetter</b>", ' rowspan="3"') : ""}${C(18, "ps-line", "")}</tr>`;
+  out += GAP;
+  /* Nav-Tabelle */
+  out += `<tr><th class="ps-th" rowspan="2">Route</th><th class="ps-th" rowspan="2">ALT<br>ft</th><th class="ps-th" rowspan="2">MSA<br>ft</th>`+
+    `<th class="ps-th" rowspan="2">TAS<br>kt</th><th class="ps-th" colspan="2">WIND</th><th class="ps-th" rowspan="2">TC<br>°</th><th class="ps-th" rowspan="2">VAR<br>W+/E−</th><th class="ps-th" rowspan="2">MC<br>°</th><th class="ps-th" rowspan="2">WCA<br>R+/L−</th>`+
+    `<th class="ps-th" rowspan="2">MH<br>°</th><th class="ps-th" colspan="2">Leg</th><th class="ps-th" rowspan="2">GS<br>kt</th><th class="ps-th" colspan="2">Rest</th>`+
+    `<th class="ps-th" rowspan="2">ETO</th><th class="ps-th" rowspan="2">ATO</th><th class="ps-th" rowspan="2">Freq.</th></tr>`+
+    `<tr><th class="ps-th">WD</th><th class="ps-th">WS</th><th class="ps-th">NM</th><th class="ps-th">Zeit</th><th class="ps-th">NM</th><th class="ps-th">Zeit</th></tr>`;
   let remDist = totDist;
   const RLp = roundedLegMins(ADJp.mins);
   const EFFp = effLegs();
   const legCells = i => {
-    if (i >= state.legs.length)
-      return `<td rowspan="2"></td>`.repeat(15);
+    if (i >= state.legs.length) return `<td rowspan="2"></td>`.repeat(15);
     /* F07: gedruckt werden die WIRKSAMEN Eingangswerte (geerbte Höhe, Auto-TAS, geerbter Wind) — passend zu GS und Zeit */
-    const l = EFFp[i], c = calcs[i];
-    const am = ADJp.mins[i];
+    const l = EFFp[i], c = calcs[i], am = ADJp.mins[i];
     const rD = c.dist!=null ? fmt0(remDist) : "", rM = am!=null ? fmtT(RLp.total - RLp.before[i]) : "";
     if (c.dist!=null) remDist -= c.dist;
     return `<td rowspan="2">${esc(l.alt)}</td><td rowspan="2">${esc(l.msa)}</td><td rowspan="2">${esc(l.tas)}</td>`+
       `<td rowspan="2">${esc(l.wd)}</td><td rowspan="2">${esc(l.ws)}</td><td rowspan="2">${esc(l.tc)}</td><td rowspan="2">${esc(l.var)}</td>`+
-      `<td rowspan="2">${c.mc!=null?fmtHdg(c.mc):""}</td><td rowspan="2">${wca1(c.wca)}</td><td rowspan="2">${c.mh!=null?fmtHdg(c.mh):""}</td>`+
-      `<td rowspan="2">${esc(l.dist)}</td><td rowspan="2">${rD}</td><td rowspan="2">${c.gs!=null?fmt0(c.gs):""}</td>`+
-      `<td rowspan="2">${am!=null?fmtT(RLp.leg[i]):""}</td><td rowspan="2">${rM}</td>`;
+      `<td rowspan="2">${c.mc!=null?fmtHdg(c.mc):""}</td><td rowspan="2">${wca1(c.wca)}</td><td rowspan="2" class="tv">${c.mh!=null?fmtHdg(c.mh):""}</td>`+
+      `<td rowspan="2">${esc(l.dist)}</td><td rowspan="2" class="tv">${am!=null?fmtT(RLp.leg[i]):""}</td><td rowspan="2">${c.gs!=null?fmt0(c.gs):""}</td>`+
+      `<td rowspan="2">${rD}</td><td rowspan="2">${rM}</td>`;
   };
-
   for (let r = 0; r <= 2*N+1; r++){
     out += `<tr class="ps-half">`;
     if (r % 2 === 0){
       const i = r/2;
       let name = "";
       if (i === 0) name = (h.dep||"").toUpperCase();
-      else if (state.legs[i-1]){
-        name = String(state.legs[i-1].route || "").trim() ? state.legs[i-1].route : wpLabel(i-1);
-      }
-      const eto = i===0 ? (h.etd||"") : (state.legs[i-1] ? state.legs[i-1].eto : "");
+      else if (state.legs[i-1]) name = String(state.legs[i-1].route || "").trim() ? state.legs[i-1].route : wpLabel(i-1);
+      const eto = i===0 ? "" : (state.legs[i-1] ? state.legs[i-1].eto : "");   /* Startplatz: kein ETO (ETD steht im Kopf) — Zelle ausgekreuzt */
       const ato = i===0 ? "" : (state.legs[i-1] ? state.legs[i-1].ato : "");
       out += `<td class="ps-wp" rowspan="2">${esc(name)}</td>`;
       if (r === 0) out += `<td></td>`.repeat(15);
-      out += `<td rowspan="2">${esc(eto)}</td><td rowspan="2">${esc(ato)}</td><td rowspan="2"></td>`;
-    } else if (r === 2*N+1) {
-      out += `<td></td>`.repeat(15);
-    } else {
-      out += legCells((r-1)/2);
-    }
+      /* Kreuz als SVG-Element (keine Hintergrundgrafik) — erscheint im Browserdruck auch ohne „Hintergrundgrafiken“ und im PDF */
+      const XC = `<td rowspan="2" class="ps-x"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0L100 100M100 0L0 100" fill="none" stroke="#444" stroke-width="0.8" vector-effect="non-scaling-stroke"/></svg></td>`;
+      out += `${i === 0 ? XC : `<td rowspan="2">${esc(eto)}</td>`}<td rowspan="2">${esc(ato)}</td><td rowspan="2"></td>`;
+    } else if (r === 2*N+1) out += `<td></td>`.repeat(15);
+    else out += legCells((r-1)/2);
     out += `</tr>`;
   }
-  out += `</tbody><tbody>`;
-  /* Totals + Notizen/Kraftstoff, dann Alternate, dann inkl. Alternate (wie Excel Z. 51-56) */
+  /* Summen, Alternate, inkl. Alternate */
   const FC = calcFuel(ac, totMin, ca.min);
-  const safeTxt = FC && FC.safeMin != null ? `${fmtT(FC.safeMin)} h` : "–";
   const ISSp = navIssues(calcs, ca);
-  const fuelTxt = (FC && ISSp.length) ? `<b>✘ Kraftstoff (OM-C 3.2.4): Flugplan UNVOLLSTÄNDIG — Mindestbedarf nicht ermittelt:</b> ${esc(ISSp.join(" · "))}`
-    : FC ? `Kraftstoff (OM-C 3.2.4): Mindestbedarf <b>${f1(FC.mfr)} l</b> — Rollen ${f1(FC.TAXI)} · Steigflug ${f1(FC.climbLAll)} · Reise ${f1(FC.cruiseL)} · An-/Abflug ${f1(FC.appL)} · Alternate ${f1(FC.altnL)} · Final Reserve ${f1(FC.frfL)} (${FC.frfMin} min) · Zusatzreserve ${f1(FC.addL)} l (${FC.addMin} min) — Vorrat ${f1(FC.fob)} l · Extra ${f1(FC.extra)} l · Sichere Flugzeit ${safeTxt} (${state.pwr} ${ac.cruise?ac.cruise.unit:""})` : "";
-  const ttTxt = tocTodText(TTp, h);
-  /* Platzrunden/Airwork: in Total Time und Kraftstoff enthalten — hier ausdrücklich aufführen */
+  const fuelTxt = (FC && ISSp.length) ? `<b>✘ Kraftstoff (OM-C 3.2.4): Flugplan UNVOLLSTÄNDIG — Mindestbedarf nicht ermittelt:</b> ${esc(ISSp.join(" · "))}` : "";
+  const ttTxt = tocTodShort(TTp, h);
   const exParts = [];
   XPp.awAt.forEach((m, j) => { if (j >= 1 && m > 0) exParts.push(`Airwork ${j === state.legs.length ? String(h.dest||"").toUpperCase() : legLabel(j-1)} ${fmt0(m)} min`); });
   if (XPp.circ > 0) exParts.push(`${fmt0(XPp.cn)} Platzrunden à ${fmt0(XPp.cm)} min am ${String(h.dest||"").toUpperCase()}`);
-  const exTxt = exParts.length ? `<br><b>Platzrunden/Airwork:</b> ${esc(exParts.join(" · "))} — zusammen ${fmtT(XPp.total)} (in Total Time und Kraftstoff enthalten, Reiseverbrauch)` : "";
-  out += `<tr><td class="ps-notes" colspan="11" rowspan="2">${fuelTxt}${exTxt}${ttTxt ? `<br>Profil: ${esc(ttTxt)}` : ""}</td>
-      <td class="ps-lbl" colspan="2" style="text-align:center">Total Distance</td><td rowspan="2" class="nb"></td><td class="ps-lbl" colspan="2" style="text-align:center">Total Time</td><td colspan="3" rowspan="2" class="ps-notes"></td></tr>
-    <tr><td class="tv" colspan="2">${totDist?fmt0(totDist):"–"} NM</td><td class="tv" colspan="2">${fmtT(totMin||null)}</td></tr>`;
+  const exTxt = exParts.length ? `<b>Platzrunden/Airwork:</b> ${esc(exParts.join(" · "))} — zusammen ${fmtT(XPp.total)}` : "";
+  const notesR = [exTxt, ttTxt ? `Profil: ${esc(ttTxt)}` : ""].filter(Boolean).join("<br>");
+  out += `<tr class="ps-tot">${C(10, "ps-notes", fuelTxt)}${L(1, "Total")}${C(1, "tv", totDist ? fmt0(totDist) : "–")}${C(1, "tv", fmtT(totMin||null))}${C(3, "nb", "")}${C(3, "ps-notes", notesR)}</tr>`;
   const al = altnEff();
-  out += `<tr style="height:4.6mm"><td class="ps-lbl">Alternate: ${esc(al.route || (h.altn||"").toUpperCase())}</td>
-      <td>${esc(al.alt)}</td><td>${esc(al.msa)}</td><td>${esc(al.tas)}</td><td>${esc(al.wd)}</td><td>${esc(al.ws)}</td><td>${esc(al.tc)}</td><td>${esc(al.var)}</td>
-      <td>${ca.mc!=null?fmtHdg(ca.mc):""}</td><td>${wca1(ca.wca)}</td><td>${ca.mh!=null?fmtHdg(ca.mh):""}</td>
-      <td>${esc(al.dist)}</td><td></td><td>${ca.gs!=null?fmt0(ca.gs):""}</td><td>${ca.min!=null?fmtT(ca.min):""}</td><td></td><td>${esc(al.eto||"")}</td><td>${esc(al.ato||"")}</td><td></td></tr>`;
-  out += `<tr><td class="ps-notes" colspan="11" rowspan="2"></td>
-      <td class="ps-lbl" colspan="2" style="text-align:center">inkl. Alternate</td><td rowspan="2" class="nb"></td><td class="ps-lbl" colspan="2" style="text-align:center">inkl. Alternate</td><td colspan="3" rowspan="2" class="ps-notes"></td></tr>
-    <tr><td class="tv" colspan="2">${(totDist||ca.dist)?fmt0(totDist+(ca.dist||0)):"–"} NM</td><td class="tv" colspan="2">${fmtT((totMin||0)+(ca.min||0)||null)}</td></tr>`;
+  out += `<tr class="ps-alt">${L(1, `ALTN ${esc(al.route || (h.altn||"").toUpperCase())}`)}`+
+    `<td>${esc(al.alt)}</td><td>${esc(al.msa)}</td><td>${esc(al.tas)}</td><td>${esc(al.wd)}</td><td>${esc(al.ws)}</td><td>${esc(al.tc)}</td><td>${esc(al.var)}</td>`+
+    `<td>${ca.mc!=null?fmtHdg(ca.mc):""}</td><td>${wca1(ca.wca)}</td><td class="tv">${ca.mh!=null?fmtHdg(ca.mh):""}</td>`+
+    `<td>${esc(al.dist)}</td><td class="tv">${ca.min!=null?fmtT(ca.min):""}</td><td>${ca.gs!=null?fmt0(ca.gs):""}</td><td></td><td></td>`+
+    `<td>${esc(al.eto||"")}</td><td>${esc(al.ato||"")}</td><td></td></tr>`;
+  out += `<tr class="ps-alt">${C(10, "nb", "")}${L(1, "inkl. ALTN")}${C(1, "tv", (totDist||ca.dist) ? fmt0(totDist+(ca.dist||0)) : "–")}${C(1, "tv", fmtT((totMin||0)+(ca.min||0)||null))}${C(6, "nb", "")}</tr>`;
+  /* Fußzeile in den Zonen — Build-Kennung bleibt gefaltet lesbar */
+  out += `<tr class="ps-ft">${C(3, "nb ps-foot", "FlyCademy GmbH · ATO DE.ATO.242")}${C(7, "nb ps-foot", "Werte gegen AFM/OM prüfen")}`+
+    `${C(3, "nb ps-foot", `OM Appendix 5.7 · ${esc(OM_REV)} · Build ${BUILD}`)}${C(3, "nb ps-foot", "")}${C(3, "nb ps-foot", "METAR/TAF: api.met.no · Höhenwinde: Open-Meteo (DWD ICON)")}</tr>`;
   out += `</tbody></table>`;
-  out += `<div class="ps-foot">FlyCademy GmbH · ATO DE.ATO.242 · OM Appendix 5.7 · ${esc(OM_REV)} · Build ${BUILD} — Werte gegen AFM/OM prüfen · METAR/TAF: api.met.no · Höhenwinde: Open-Meteo (DWD ICON)</div>`;
+  out += FOLD;
   out += buildPrintPage2();
   return out;
 }
@@ -4442,13 +4676,13 @@ function buildPrintPage2(){
     wb += `<tr><td style="text-align:left">${esc(rr.name)}</td><td>${f1(rr.m)}</td><td>${fmt0(rr.arm)}</td><td>${fmt0(rr.mom)}</td></tr>`;
   wb += `<tr><td class="ps-lbl">Zero Fuel Mass</td><td class="tv">${W.zfmM?f1(W.zfmM):"–"}</td><td>${cg(W.zfmMom, W.zfmM)}</td><td>${fmt0(W.zfmMom)}</td></tr>`;
   if (W.fTo != null && W.dens != null)
-    wb += `<tr><td style="text-align:left">Kraftstoff Start: ${esc(W.toAuto ? W.fTo.toFixed(1) : String(W.fTo))} l${W.toAuto ? (W.toSrc === "fob" ? " (Vorrat − Rollen)" : " (Mindestbedarf − Rollen)") : ""} × ${esc(String(W.dens))} kg/l</td><td>${f1(W.fTo*W.dens)}</td><td>${fmt0(W.farm)}</td><td>${fmt0(W.fTo*W.dens*W.farm)}</td></tr>`;
+    wb += `<tr><td style="text-align:left">Kraftstoff Start: ${esc(W.toAuto ? W.fTo.toFixed(1) : String(W.fTo))} l${galSfx(ac, W.fTo)} × ${esc(String(W.dens))} kg/l</td><td>${f1(W.fTo*W.dens)}</td><td>${fmt0(W.farm)}</td><td>${fmt0(W.fTo*W.dens*W.farm)}</td></tr>`;
   wb += `<tr><td class="ps-lbl">Startmasse (TOM)</td><td class="tv">${W.tom!=null?f1(W.tom):"–"}</td><td class="tv">${W.tom!=null?cg(W.tomMom,W.tom):"–"}</td><td>${W.tom!=null?fmt0(W.tomMom):"–"}</td></tr>`;
   if (W.fLdg != null && W.dens != null)
-    wb += `<tr><td style="text-align:left">Kraftstoff Landung: ${esc(W.ldgAuto ? W.fLdg.toFixed(1) : String(W.fLdg))} l${W.ldgAuto ? " (aus Kraftstoffplanung)" : ""}</td><td>${f1(W.fLdg*W.dens)}</td><td>${fmt0(W.farm)}</td><td>${fmt0(W.fLdg*W.dens*W.farm)}</td></tr>`;
+    wb += `<tr><td style="text-align:left">Kraftstoff Landung: ${esc(W.ldgAuto ? W.fLdg.toFixed(1) : String(W.fLdg))} l${galSfx(ac, W.fLdg)}</td><td>${f1(W.fLdg*W.dens)}</td><td>${fmt0(W.farm)}</td><td>${fmt0(W.fLdg*W.dens*W.farm)}</td></tr>`;
   wb += `<tr><td class="ps-lbl">Landemasse (LDM)</td><td class="tv">${W.ldm!=null?f1(W.ldm):"–"}</td><td class="tv">${W.ldm!=null?cg(W.ldmMom,W.ldm):"–"}</td><td>${W.ldm!=null?fmt0(W.ldmMom):"–"}</td></tr>`;
   wb += `</table>`;
-  wb += W.checks.map(ck).join("");
+  wb += W.checks.filter(c => !c.info).map(ck).join("");   /* „Fuel TO/LDG automatisch …“ nur am Bildschirm */
   if (W.lim){
     let env = envelopeSVG(ac, W.lim, wbPoints(W));
     env = env.replace(/var\(--calc-bg\)/g,"#efefef").replace(/var\(--calc-ink\)/g,"#000")
@@ -4463,7 +4697,7 @@ function buildPrintPage2(){
   if (!FC){
     fu += `<div class="ps-ck">keine Verbrauchsdaten hinterlegt</div>`;
   } else {
-    const row = (ph, tm, rate, lit, hint) => `<tr><td style="text-align:left">${ph}${hint?` <span style="color:#555;font-size:6.3pt">${hint}</span>`:""}</td><td>${tm==null?"–":fmt0(tm)+" min"}</td><td>${rate==null?"fix":f1(rate)+" l/h"}</td><td>${f1(lit)} l</td></tr>`;
+    const row = (ph, tm, rate, lit) => `<tr><td style="text-align:left">${ph}</td><td>${tm==null?"–":fmt0(tm)+" min"}</td><td>${rate==null?"fix":f1(rate)+" l/h"}${galOn(ac) && rate != null ? `<br><span style="font-size:7pt">${galTxt(rate)} gal/h</span>` : ""}</td><td>${f1(lit)} l${galOn(ac) && lit != null ? `<br><span style="font-size:7pt">${galTxt(lit)} gal</span>` : ""}</td></tr>`;
     fu += `<table><colgroup><col style="width:46%"><col style="width:16%"><col style="width:18%"><col style="width:20%"></colgroup>
       <tr><th class="ps-th" style="text-align:left">Phase</th><th class="ps-th">Zeit</th><th class="ps-th">Rate</th><th class="ps-th">Menge</th></tr>`;
     fu += row("Anlassen, Rollen", null, null, FC.TAXI, "OM-Pauschale");
@@ -4471,24 +4705,25 @@ function buildPrintPage2(){
       (FC.climbAuto ? `Vy bis ${FC.S.agl} ft AGL, dann ${fmt0(FC.S.cc)} KIAS` : "keine Höhen-/Platzdaten") + FC.stepHint);
     if (FC.exMin){ const rm = Math.max(0, FC.cruiseMin - FC.exMin);
       fu += row("Reiseflug Strecke", rm, FC.cr, FC.cr != null ? rm/60*FC.cr : null);
-      fu += row("Platzrunden / Airwork", FC.exMin, FC.cr, FC.exL, "mit Reiseverbrauch"); }
+      fu += row("Platzrunden, Übungsanflüge, Airwork", FC.exMin, FC.cr, FC.exL, "mit Reiseverbrauch"); }
     else fu += row("Reiseflug", FC.cruiseMin, FC.cr, FC.cruiseL);
     fu += row("An- &amp; Abflug", FC.appMin, FC.cr, FC.appL);
     fu += row("Alternate", FC.altnMin, FC.cr, FC.altnL);
     fu += row(`Final Reserve (${FC.f.res==="night"?"VFR Nacht/IFR":"VFR Tag"})`, FC.frfMin, FC.cr, FC.frfL);
     fu += row("Zusatzreserve (Additional Reserve)", FC.addMin, FC.cr, FC.addL, "bei Verzögerungen nutzbar");
     const INC = CORE.issues.length > 0;
-    fu += `<tr><td class="ps-lbl">Mindest-Kraftstoffbedarf</td><td></td><td></td><td class="tv">${INC ? "UNVOLLST." : f1(FC.mfr) + " l"}</td></tr>`;
-    fu += `<tr><td style="text-align:left">Kraftstoff-Vorrat (FOB)</td><td></td><td></td><td>${f1(FC.fob)} l</td></tr>`;
-    fu += `<tr><td style="text-align:left">Extra-Kraftstoff</td><td></td><td></td><td class="tv">${INC ? "–" : f1(FC.extra) + " l"}</td></tr>`;
+    const g2 = v => galOn(ac) && v != null ? `<br><span style="font-size:7pt">${galTxt(v)} gal</span>` : "";
+    fu += `<tr><td class="ps-lbl">Mindest-Kraftstoffbedarf</td><td></td><td></td><td class="tv">${INC ? "UNVOLLST." : f1(FC.mfr) + " l" + g2(FC.mfr)}</td></tr>`;
+    fu += `<tr><td style="text-align:left">Kraftstoff-Vorrat (FOB)</td><td></td><td></td><td>${f1(FC.fob)} l${g2(FC.fob)}</td></tr>`;
+    fu += `<tr><td style="text-align:left">Extra-Kraftstoff</td><td></td><td></td><td class="tv">${INC ? "–" : f1(FC.extra) + " l" + g2(FC.extra)}</td></tr>`;
     const safeTxt = FC.safeMin != null ? `${fmtT(FC.safeMin)} h` : "–";
     fu += `<tr><td style="text-align:left">Sichere Flugzeit</td><td></td><td></td><td>${safeTxt}</td></tr></table>`;
     if (FC.fob != null && ac.maxFuelL != null)
-      fu += ck({ok: FC.fob <= ac.maxFuelL, txt:`Vorrat ${f1(FC.fob)} l ${FC.fob<=ac.maxFuelL?"≤":">"} ausfliegbare Tankmenge ${f1(ac.maxFuelL)} l`});
+      fu += ck({ok: FC.fob <= ac.maxFuelL, txt:`Vorrat ${f1(FC.fob)} l${galSfx(ac, FC.fob)} ${FC.fob<=ac.maxFuelL?"≤":">"} ausfliegbare Tankmenge ${f1(ac.maxFuelL)} l${galSfx(ac, ac.maxFuelL)}`});
     if (INC) CORE.issues.forEach(t => fu += ck({ok:false, txt:`Flugplan unvollständig: ${t}`}));
     else if (FC.extra != null)
-      fu += ck({ok: FC.extra >= 0, txt: FC.extra >= 0 ? `Vorrat ≥ Mindestbedarf` : `Vorrat ${f1(-FC.extra)} l UNTER Mindestbedarf — Flug so nicht antreten`});
-    fu += `<div class="ps-ck" style="color:#444">Leistung ${esc(String(state.pwr))} ${ac.cruise?esc(ac.cruise.unit):""} · Verbrauchsquellen siehe App</div>`;
+      fu += ck({ok: FC.extra >= 0, txt: FC.extra >= 0 ? `Vorrat ≥ Mindestbedarf` : `Vorrat ${f1(-FC.extra)} l${galSfx(ac, -FC.extra)} UNTER Mindestbedarf — Flug so nicht antreten`});
+    fu += `<div class="ps-ck" style="color:#444">Leistung ${esc(pwrLabel(ac, state.pwr))}</div>`;
   }
   out += `<table class="ps-lay ps-sec"><tr><td class="nb" style="width:47%;vertical-align:top;text-align:left">${wb}</td><td class="nb" style="width:2%"></td><td class="nb" style="vertical-align:top;text-align:left">${fu}</td></tr></table>`;
   /* Start-/Landestrecken */
@@ -4498,21 +4733,20 @@ function buildPrintPage2(){
     const B = ac.perf[key], s = perfEff(key);
     const r = B.nomo ? perfComputeNomo(B, s, ac) : perfCompute(B, s);
     const PI = perfIssues(B, s);
-    let inner = `<div class="ps-ckl">Platzhöhe ${esc(s.elev||"–")}${s.elevAuto?" (auto)":""} ft · QNH ${esc(s.qnh||"1013")} hPa · OAT ${esc(s.oat||"–")} °C · ${(() => { const S0 = state.perf[key] || {}, pw = perfWind(S0); return pw ? `Wind ${S0.wvrb ? "VRB" : String(S0.wdir).padStart(3,"0")}/${S0.wkt}${S0.wgust ? "G" + S0.wgust : ""} → ${pw.vrb ? "variabel" : (pw.head >= 0 ? "GW " + pw.head : "RW " + (-pw.head)) + " kt"}, SW ${pw.cross}${pw.crossG != null && pw.crossG > pw.cross ? "–" + pw.crossG : ""} kt` : `Wind ${esc(s.wind||"0")} kt`; })()} · ${esc(s.surf||"–")} · Neigung ${esc(s.slope||"0")} % · Faktor ${esc(String(perfFactor(B, s)))}${s.rwy?` · ${key==="to"?"TORA":"LDA"} ${esc(s.rwy)} m${s.rwySrc==="oa"?" (OurAirports, ungeprüft)":""}`:""}</div>`;
+    let inner = `<div class="ps-ckl">Platzhöhe ${esc(s.elev||"–")}${s.elevAuto?" (auto)":""} ft · QNH ${esc(s.qnh||"–")} hPa · OAT ${esc(s.oat||"–")} °C · ${(() => { const S0 = state.perf[key] || {}, pw = perfWind(S0); return pw ? `Wind ${S0.wvrb ? "VRB" : String(S0.wdir).padStart(3,"0")}/${S0.wkt}${S0.wgust ? "G" + S0.wgust : ""} → ${pw.vrb ? "variabel" : (pw.head >= 0 ? "GW " + pw.head : "RW " + (-pw.head)) + " kt"}, SW ${pw.cross}${pw.crossG != null && pw.crossG > pw.cross ? "–" + pw.crossG : ""} kt` : `Wind ${esc(s.wind||"0")} kt`; })()} · ${esc(s.surf||"–")}${(s.cond||"trocken")!=="trocken"?", "+esc(s.cond):""}${B.flaps?" · Start"+esc(perfFlapTxt(B, s).replace(/^K/,"k")):""} · Neigung ${esc(s.slope||"0")} %${s.rwy?` · ${key==="to"?"TORA":"LDA"} ${esc(s.rwy)} m${s.rwySrc==="oa"?" (OurAirports, ungeprüft)":""}`:""}</div>`;
     if (PI.length){
       inner += ck({ok:false, txt:"Eingaben ungültig — keine Streckenbewertung"});
       PI.forEach(t => inner += ck({ok:false, txt:t}));
     } else if (!r.ready){
-      inner += `<div class="ps-ck">✘ Platzhöhe/OAT nicht eingegeben — keine Berechnung</div>`;
+      inner += `<div class="ps-ck">✘ Platzhöhe, QNH oder OAT fehlt — keine Berechnung</div>`;
     } else if (r.err){
-      inner += `<div class="ps-ck">✘ ${esc(r.err)} (Druckhöhe ${fmt0(r.pa)} ft)</div>`;
+      { const D = densAltTxt(r.pa, num(s.oat)); inner += `<div class="ps-ck">✘ ${esc(r.err)} (Druckhöhe ${fmt0(r.pa)} ft${D ? `, Dichtehöhe ${D.da} ft` : ""})</div>`; }
     } else {
-      inner += `<table><colgroup><col style="width:22%"><col style="width:26%"><col style="width:26%"><col style="width:26%"></colgroup>
-        <tr><th class="ps-th">Druckhöhe</th><th class="ps-th">Diagramm Roll / ${B.nomo ? "15 m" : "50 ft"}</th><th class="ps-th">korrigiert</th><th class="ps-th">× Faktor ${esc(String(r.F))}</th></tr>
-        <tr><td>${fmt0(r.pa)} ft</td><td>${fmt0(r.rollTab)} / ${fmt0(r.d50Tab)} m</td><td>${fmt0(r.roll)} / ${fmt0(r.d50)} m</td><td class="tv">${fmt0(r.rollF)} / ${fmt0(r.d50F)} m</td></tr></table>`;
-      (r.infos||[]).forEach(n => inner += ck({ok:true, txt:n}));
-      (r.notes||[]).forEach(n => inner += ck({ok:false, txt:n}));
-      inner += ck(perfRwyCk(key, s, r));
+      const DAp = densAltTxt(r.pa, num(s.oat));
+      inner += `<table><colgroup><col style="width:16%"><col style="width:21%"><col style="width:21%"><col style="width:21%"><col style="width:21%"></colgroup>
+        <tr><th class="ps-th">Druckhöhe</th><th class="ps-th">Dichtehöhe</th><th class="ps-th">Diagramm Roll / ${B.nomo ? "15 m" : "50 ft"}</th><th class="ps-th">korrigiert</th><th class="ps-th">× Faktor ${esc(String(r.F))}</th></tr>
+        <tr><td>${fmt0(r.pa)} ft</td><td>${DAp ? `${DAp.da} ft<br><small>${DAp.isa}</small>` : "–"}</td><td>${fmt0(r.rollTab)} / ${fmt0(r.d50Tab)} m</td><td>${fmt0(r.roll)} / ${fmt0(r.d50)} m</td><td class="tv">${fmt0(r.rollF)} / ${fmt0(r.d50F)} m</td></tr></table>`;
+      inner += ck(perfRwyCk(key, s, r));   /* Erläuterungen (Klappen, Belag, Bahnzustand, Tabellenränder) nur am Bildschirm */
       { const xw = perfXwCk(ac, state.perf[key] || {}); if (xw) inner += ck(xw); }
     }
     return `<div class="ps-pf" style="border:.5pt solid #555;padding:1.4mm;text-align:left">${`<b>${title}</b>`}${inner}</div>`;
@@ -4540,6 +4774,39 @@ function renderPreservingFocus(t){
 /* M&B-Felder: beim Antippen ganzen Inhalt markieren → erste Ziffer ersetzt die Vorgabe (z. B. Pilot 85).
    Nicht bei der Fokus-Wiederherstellung nach dem Neuzeichnen, sonst ersetzte jede Ziffer die vorige. */
 let PF_RESTORE = false;
+/* DEST- und ALTN-Zeile im Navlog: Tippen dort ändert DEST bzw. ALTN in den Kopfdaten (wie das Kopffeld selbst).
+   Gültig sind bis zu 4 Buchstaben/Ziffern; anderer Text macht die Zeile zu einem frei benannten Punkt,
+   das Kopffeld bleibt dann beim Wert vom Beginn der Eingabe. */
+let HEAD_EDIT = null;
+document.addEventListener("focusin", e => {
+  if (PF_RESTORE) return;                                  /* Fokus nach dem Neuzeichnen — Bearbeitung läuft weiter */
+  const t = e.target, d = t && t.dataset;
+  const id = d && d.k === "route" ? (d.dest === "1" ? "dest" : (d.altn === "1" ? "altn" : null)) : null;
+  HEAD_EDIT = id ? { i: d.i, id, orig: String(state.head[id] || "").trim().toUpperCase() } : null;
+});
+/* DEP/DEST gewechselt: wurde im Plan schon Wetter abgerufen, läuft für den neuen Platz dasselbe wie nach „Abrufen“ —
+   Wetter, Pisten, Pistenvorschlag. Ohne bisherigen Abruf bleibt es beim Knopf (keine Abfragen ungefragt). */
+function perfStationAuto(){
+  const w = state.wx || {};
+  const had = (w.metars && Object.keys(w.metars).length) || (w.model && Object.keys(w.model).length);
+  if (!had) return;
+  clearTimeout(perfStationAuto._t);
+  perfStationAuto._t = setTimeout(async () => {
+    const need = ["to","ldg"].some(k => { const ic = perfIcao(k), s = state.perf && state.perf[k]; return /^[A-Z]{4}$/.test(ic) && s && !s.wxOwn && (!s.metarInfo || s.stIcao !== ic); });
+    if (!need) return;
+    try{ await loadWeather(); }catch(e){}
+    try{ await perfAutoAll(); }catch(e){}
+  }, 1200);
+}
+function headFromLog(leg, raw){
+  const id = HEAD_EDIT.id, v = String(raw || "").trim().toUpperCase();
+  const nv = v !== "" && /^[A-Z0-9]{1,4}$/.test(v) ? v : HEAD_EDIT.orig;
+  if (/^[A-Z0-9]{4}$/.test(nv) && nv !== HEAD_EDIT.orig && leg.lat != null){ delete leg.lat; delete leg.lon; delete leg.loc; }   /* neuer Platz: alter Pin gilt nicht mehr */
+  state.head[id] = nv; if (id === "dest") state.head.destDflt = false;
+  const de = $(id); if (de){ de.value = nv; de.classList.remove("dflt"); }
+  if (/^[A-Z]{4}$/.test(nv) && MAP){ clearTimeout(mapShow._t); mapShow._t = setTimeout(() => { try{ mapShow(); }catch(err){} }, 400); }
+  if (id === "dest" && /^[A-Z]{4}$/.test(nv)) perfStationAuto();
+}
 const SEL_ALL = 'input[data-wb], #fuelTo, #fuelLdg, #fuelDens, #fuelArm, #dep, #dest, #altn, input.dflt';   /* ICAO-Felder (max. 4 Zeichen) und grau vorbelegte Felder: Antippen = ersetzen */
 document.addEventListener("focusin", e => {
   const t = e.target;

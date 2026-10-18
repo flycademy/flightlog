@@ -1,5 +1,5 @@
 /* FlyCademy FlightLog — Offline-Speicher (Service Worker) */
-const CACHE = "fcy-fl-2026-10-03b";
+const CACHE = "fcy-fl-2026-10-18k";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png",
   "icon-maskable-512.png", "apple-touch-icon.png", "jspdf.umd.min.js", "html2canvas.min.js"];
 
