@@ -1,6 +1,6 @@
 # FlyCademy Flight Log — Web-App
 
-Stand: Build 2026-10-18k · OM Appendix 5.7 · REV 0.3 / 18.10.2026
+Stand: Build 2026-10-20i · OM Appendix 5.7 · REV 0.3 / 18.10.2026
 
 ## Einmalig einrichten (GitHub Pages)
 

@@ -304,10 +304,8 @@ table.fueltbl td small{white-space:normal}
     .wrap,.printbar{display:none!important}
     #printSheet{display:block!important;width:100%}
   }
-  /* Fallback: ignoriert ein Browser das Querformat, Inhalt auf Hochformat-Breite skalieren */
-  @media print and (orientation: portrait){
-    #printSheet{zoom:.68}
-  }
+  /* Keine Zoom-Ersatzregel für Hochformat mehr (Georgi 20.10.2026): Chrome meldet „portrait“, sobald der Drucker auf Hochformat
+     steht, obwohl @page A4 quer gilt — der Ausdruck wurde dann auf 68 % verkleinert. Die Seitengröße kommt allein aus @page. */
   #printSheet{position:relative;font-family:Arial,Helvetica,sans-serif;color:#000;font-size:7.5pt;line-height:1.18;background:#fff;
     --panel:#fff;--paper:#fff;--ink:#000;--muted:#444;--line:#555;--line-soft:#bbb;--calc-bg:#f2f2f2;--calc-ink:#000;--accent:#000;--warn:#000;--ok:#000;--mut:#444}
   #printSheet table{border-collapse:collapse;width:100%;min-width:0;table-layout:fixed}
@@ -331,7 +329,7 @@ table.fueltbl td small{white-space:normal}
   #printSheet .ps-foot{border:none;text-align:left;font-size:6.3pt;color:#333;padding:1mm 0 0}
   #printSheet .ps-p2{page-break-before:always}
   #printSheet .ps-fold{position:relative;height:4mm}
-  #printSheet .ps-grid tr.ps-hr td{height:7.2mm}
+  #printSheet .ps-grid tr.ps-hr td{height:8.4mm}
   #printSheet .ps-grid td.ps-f{text-align:left;vertical-align:top;padding:.3mm 1.2mm 0}
   #printSheet .ps-grid td.ps-f small{display:block;font-size:5.8pt;font-weight:600;color:#444;line-height:1.1}
   #printSheet .ps-grid td.ps-f span{display:block;text-align:center;font-size:8.5pt;line-height:1.25}
@@ -344,6 +342,13 @@ table.fueltbl td small{white-space:normal}
   #printSheet .ps-grid tr.ps-ln td{height:4.6mm}
   #printSheet .ps-grid td.ps-line{border:none;border-bottom:.5pt solid #555}
   #printSheet .ps-grid td.ps-x{position:relative;padding:0}
+  #printSheet .ps-grid td.ps-tri{position:relative}
+  #printSheet .ps-grid td.ps-tri i.tri{position:absolute;top:0;width:0;height:0;display:block;border-top:2.4mm solid #000}
+  /* Pfeil im ATO-Feld: Spitze unten links, Schaft 20° zur unteren Linie (Georgi 20.10.2026, nach Vergleich 45°/30°/20°) */
+  #printSheet .ps-grid td.ps-tri i.arw{position:absolute;left:.4mm;bottom:.5mm;width:2.6mm;height:1.6mm;display:block}
+  #printSheet .ps-grid td.ps-tri i.arw::before{content:"";position:absolute;left:0;bottom:-.15mm;width:2.7mm;height:0;border-top:.3mm solid #000;transform-origin:0 50%;transform:rotate(-20deg)}
+  #printSheet .ps-grid td.ps-tri i.arw::after{content:"";position:absolute;left:0;bottom:-.55mm;width:0;height:0;border-right:1.3mm solid #000;border-top:.55mm solid transparent;border-bottom:.55mm solid transparent;transform-origin:0 50%;transform:rotate(-20deg)}
+  #printSheet .ps-grid td.ps-tri i.tri.leg{right:0;border-left:2.4mm solid transparent}
   #printSheet .ps-grid td.ps-x svg{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
   #printSheet .ps-grid td.ps-clrl{border:none;text-align:left;vertical-align:top;font-size:7pt;padding-left:0}
   #printSheet .ps-grid tr.ps-ar td{height:5.4mm}
@@ -406,6 +411,18 @@ table.fueltbl td small{white-space:normal}
   #printSheet .ps-env svg circle{fill:#000!important;stroke:#000!important}
   #printSheet .ps-env svg circle[fill^="var(--panel"]{fill:#fff!important}
   #printSheet .ps-sub{font-size:8pt;font-weight:700;text-align:left;margin:0 0 .8mm}
+  /* Seite 2 für den A5-Druck (Georgi 20.10.2026): Schrift wie Seite 1, höhere Zellen, größere Prüfzeilen */
+  #printSheet .ps-p2 td,#printSheet .ps-p2 th{font-size:9.75pt;line-height:1.15;padding:.65mm 1.2mm}
+  #printSheet .ps-p2 table.ps-lay td.nb{padding:0}
+  #printSheet .ps-p2 td span[style*="font-size:7pt"]{font-size:8pt!important;display:block;line-height:1.05}
+  #printSheet .ps-p2 td small{font-size:8pt}
+  #printSheet .ps-p2 .ps-sub{font-size:10.5pt;margin:0 0 1.2mm}
+  #printSheet .ps-p2 .ps-ck,#printSheet .ps-p2 .ps-ckl{font-size:8.8pt;line-height:1.25;margin-top:.9mm}
+  #printSheet .ps-p2 .ps-pf b{font-size:10.5pt}
+  #printSheet .ps-p2 .ps-foot{font-size:7.5pt}
+  #printSheet .ps-p2 .ps-env{margin-top:0}
+  #printSheet .ps-p2 .ps-env svg{max-height:none}
+  #printSheet .ps-p2 .ps-sec{margin-top:2.4mm}
   #printSheet table.ps-lay{table-layout:fixed}
   #printSheet table.ps-lay > tr > td, #printSheet table.ps-lay td.nb{border:none;padding:0}
 </style>
@@ -1872,7 +1889,7 @@ const AIRCRAFT = {
 
 const LS_KEY = "fcy-flightlog-draft-v2";
 const $ = id => document.getElementById(id);
-const BUILD = "2026-10-18k";
+const BUILD = "2026-10-20i";
 /* Revisionsstand des gelenkten Anhangs — bei jeder OM-Revision hier anpassen (Anhangsverzeichnis OM) */
 const OM_REV = "REV 0.3 / 18.10.2026";
 /* Start oder Landung je Leistungsblock kennzeichnen (für die Faktoren aus OM-C 3.1) */
@@ -3015,7 +3032,7 @@ function envelopeSVG(ac, lim, pts){
     s += `<text x="${X(v)}" y="${H-24}" font-size="10" fill="var(--muted)" text-anchor="middle">${v}</text>`;
   }
   const yst = (mtow - massMin) > 300 ? 100 : 50;
-  const yticks = [...new Set([massMin, mtow, ...Array.from({length:20},(_,k)=>Math.ceil(y0/yst)*yst + k*yst).filter(v => v > y0 && v < y1)])];
+  const yticks = [...new Set([massMin, mtow, ...Array.from({length:20},(_,k)=>Math.ceil(y0/yst)*yst + k*yst).filter(v => v > y0 && v < y1 && Math.abs(v - mtow) >= yst * 0.3 && Math.abs(v - massMin) >= yst * 0.3)])];
   for (const v of yticks){
     if (v !== massMin && v !== mtow)
       s += `<line x1="${L}" y1="${Y(v)}" x2="${W-R}" y2="${Y(v)}" stroke="var(--line)" stroke-width=".6" opacity=".55"/>`;
@@ -4450,14 +4467,23 @@ function buildPrintSheet(){
   const ADJp = legMinutesAdj(calcs, TTp);
   const XPp = extraPlan(), totMin = (ADJp.tot || totMinRaw) + XPp.total;   /* inkl. Platzrunden/Airwork */
   if (TTp.tod && !TTp.tod.none) TTp.tod.startMin = totMin - TTp.tod.min;
-  const N = Math.max(state.legs.length, 12);
+  const N = Math.max(state.legs.length, 8);
+  /* Schreibzellen für den A5-Druck (Georgi 20.10.2026): A4 wird auf A5 verkleinert (× 0,707) und gefaltet.
+     Die Wegpunktzeilen (ETO/ATO) und die ALTN-Zeile teilen sich die freie Seitenhöhe: bei 8 Legs ≈ 10 mm auf A4 = 7 mm auf A5
+     (bisher 7 / 5 mm bei 12 vorgedruckten Zeilen). Mehr Legs → flachere Zeilen, Seite 1 bleibt bis 14 Legs eine Seite (mind. 3 mm je Halbzeile). */
+  const PS_BODY_MM = 99.4, half = Math.min(5.4, Math.max(3.0, PS_BODY_MM / (2 * (N + 1) + 2)));
+  const HS = ` style="height:${half.toFixed(2)}mm"`;
+  /* Rechen-Hilfen (Georgi 20.10.2026): ATO + Leg-Zeit → ETO der nächsten Zeile, Augenführung:
+     Leg-Zeit Dreieck oben rechts, ATO kleiner Pfeil unten links. Als CSS-Rahmen gezeichnet, damit sie im Browserdruck ohne Hintergrundgrafiken
+     und im PDF erscheinen (html2canvas zeichnet kleine SVGs nicht). */
+  const TRI_ATO = `<i class="arw ato" aria-hidden="true"></i>`, TRI_LEG = `<i class="tri leg" aria-hidden="true"></i>`;
   /* Seite 1 als EIN Raster wie im Excel-Original — alle Zeilen teilen die Spalten der Nav-Tabelle, damit keine Falte ein Feld zerschneidet.
      Zwei Falten: (1) TAS … WCA, (2) GS + Rest-Distanz + Rest-Zeit. Sichtbar bleiben Route, ALT, MSA | MH, NM, Zeit | ETO, ATO, Freq.
-     Spalten (% der Blattbreite):  Route 10 · ALT 4,6 · MSA 4,6 | TAS 4,6 · WD 4,4 · WS 4,4 · TC 4,6 · VAR 5 · MC 4,6 · WCA 4,8 |
-     MH 4,6 · NM 5 · Zeit 5,2 | GS 4,6 · Rest NM 5 · Rest Zeit 5,2 | ETO 5,6 · ATO 5,6 · Freq 7,6
-     Faltmarken: Falte 1 Knick 51,6 % → Kante 19,2 % · Falte 2 Knick 81,2 % → Kante 66,4 % (gestrichelt = Knick, durchgezogen = bis hierhin) */
-  const W = [10,4.6,4.6, 4.6,4.4,4.4,4.6,5,4.6,4.8, 4.6,5,5.2, 4.6,5,5.2, 5.6,5.6,7.6];
-  const FOLD = `<div class="ps-fold" aria-hidden="true"><i class="fz" style="left:19.2%"></i><i class="fk" style="left:51.6%"></i><i class="fz" style="left:66.4%"></i><i class="fk" style="left:81.2%"></i></div>`;
+     Spalten (% der Blattbreite):  Route 10 · ALT 4,6 · MSA 4,6 | TAS 4,6 · WD 4 · WS 4 · TC 4,6 · VAR 4,6 · MC 4,6 · WCA 4,4 |
+     MH 4,6 · NM 5 · Zeit 5,2 | GS 4,6 · Rest NM 5 · Rest Zeit 5,2 | ETO 6,4 · ATO 6,4 · Freq 7,6   (ETO/ATO seit 20.10.2026 breiter zum Schreiben)
+     Faltmarken: Falte 1 Knick 50 % → Kante 19,2 % · Falte 2 Knick 79,6 % → Kante 64,8 % (gestrichelt = Knick, durchgezogen = bis hierhin) */
+  const W = [10,4.6,4.6, 4.6,4,4,4.6,4.6,4.6,4.4, 4.6,5,5.2, 4.6,5,5.2, 6.4,6.4,7.6];
+  const FOLD = `<div class="ps-fold" aria-hidden="true"><i class="fz" style="left:19.2%"></i><i class="fk" style="left:50%"></i><i class="fz" style="left:64.8%"></i><i class="fk" style="left:79.6%"></i></div>`;
   const C = (n, cls, html, attr) => `<td${n > 1 ? ` colspan="${n}"` : ""}${cls ? ` class="${cls}"` : ""}${attr || ""}>${html ?? ""}</td>`;
   const L = (n, t) => C(n, "ps-lbl", t);
   const GAP = `<tr class="ps-gap"><td colspan="19" class="nb"></td></tr>`;
@@ -4490,7 +4516,7 @@ function buildPrintSheet(){
   const RLp = roundedLegMins(ADJp.mins);
   const EFFp = effLegs();
   const legCells = i => {
-    if (i >= state.legs.length) return `<td rowspan="2"></td>`.repeat(15);
+    if (i >= state.legs.length) return Array.from({length: 15}, (_, j) => j === 11 ? `<td rowspan="2" class="ps-tri">${TRI_LEG}</td>` : `<td rowspan="2"></td>`).join("");
     /* F07: gedruckt werden die WIRKSAMEN Eingangswerte (geerbte Höhe, Auto-TAS, geerbter Wind) — passend zu GS und Zeit */
     const l = EFFp[i], c = calcs[i], am = ADJp.mins[i];
     const rD = c.dist!=null ? fmt0(remDist) : "", rM = am!=null ? fmtT(RLp.total - RLp.before[i]) : "";
@@ -4498,11 +4524,11 @@ function buildPrintSheet(){
     return `<td rowspan="2">${esc(l.alt)}</td><td rowspan="2">${esc(l.msa)}</td><td rowspan="2">${esc(l.tas)}</td>`+
       `<td rowspan="2">${esc(l.wd)}</td><td rowspan="2">${esc(l.ws)}</td><td rowspan="2">${esc(l.tc)}</td><td rowspan="2">${esc(l.var)}</td>`+
       `<td rowspan="2">${c.mc!=null?fmtHdg(c.mc):""}</td><td rowspan="2">${wca1(c.wca)}</td><td rowspan="2" class="tv">${c.mh!=null?fmtHdg(c.mh):""}</td>`+
-      `<td rowspan="2">${esc(l.dist)}</td><td rowspan="2" class="tv">${am!=null?fmtT(RLp.leg[i]):""}</td><td rowspan="2">${c.gs!=null?fmt0(c.gs):""}</td>`+
+      `<td rowspan="2">${esc(l.dist)}</td><td rowspan="2" class="tv ps-tri">${am!=null?fmtT(RLp.leg[i]):""}${TRI_LEG}</td><td rowspan="2">${c.gs!=null?fmt0(c.gs):""}</td>`+
       `<td rowspan="2">${rD}</td><td rowspan="2">${rM}</td>`;
   };
   for (let r = 0; r <= 2*N+1; r++){
-    out += `<tr class="ps-half">`;
+    out += `<tr class="ps-half"${HS}>`;
     if (r % 2 === 0){
       const i = r/2;
       let name = "";
@@ -4514,7 +4540,7 @@ function buildPrintSheet(){
       if (r === 0) out += `<td></td>`.repeat(15);
       /* Kreuz als SVG-Element (keine Hintergrundgrafik) — erscheint im Browserdruck auch ohne „Hintergrundgrafiken“ und im PDF */
       const XC = `<td rowspan="2" class="ps-x"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0L100 100M100 0L0 100" fill="none" stroke="#444" stroke-width="0.8" vector-effect="non-scaling-stroke"/></svg></td>`;
-      out += `${i === 0 ? XC : `<td rowspan="2">${esc(eto)}</td>`}<td rowspan="2">${esc(ato)}</td><td rowspan="2"></td>`;
+      out += `${i === 0 ? XC : `<td rowspan="2">${esc(eto)}</td>`}${i < N ? `<td rowspan="2" class="ps-tri">${esc(ato)}${TRI_ATO}</td>` : `<td rowspan="2">${esc(ato)}</td>`}<td rowspan="2"></td>`;
     } else if (r === 2*N+1) out += `<td></td>`.repeat(15);
     else out += legCells((r-1)/2);
     out += `</tr>`;
@@ -4531,7 +4557,7 @@ function buildPrintSheet(){
   const notesR = [exTxt, ttTxt ? `Profil: ${esc(ttTxt)}` : ""].filter(Boolean).join("<br>");
   out += `<tr class="ps-tot">${C(10, "ps-notes", fuelTxt)}${L(1, "Total")}${C(1, "tv", totDist ? fmt0(totDist) : "–")}${C(1, "tv", fmtT(totMin||null))}${C(3, "nb", "")}${C(3, "ps-notes", notesR)}</tr>`;
   const al = altnEff();
-  out += `<tr class="ps-alt">${L(1, `ALTN ${esc(al.route || (h.altn||"").toUpperCase())}`)}`+
+  out += `<tr class="ps-alt" style="height:${(2 * half).toFixed(2)}mm">${L(1, `ALTN ${esc(al.route || (h.altn||"").toUpperCase())}`)}`+
     `<td>${esc(al.alt)}</td><td>${esc(al.msa)}</td><td>${esc(al.tas)}</td><td>${esc(al.wd)}</td><td>${esc(al.ws)}</td><td>${esc(al.tc)}</td><td>${esc(al.var)}</td>`+
     `<td>${ca.mc!=null?fmtHdg(ca.mc):""}</td><td>${wca1(ca.wca)}</td><td class="tv">${ca.mh!=null?fmtHdg(ca.mh):""}</td>`+
     `<td>${esc(al.dist)}</td><td class="tv">${ca.min!=null?fmtT(ca.min):""}</td><td>${ca.gs!=null?fmt0(ca.gs):""}</td><td></td><td></td>`+
@@ -4663,7 +4689,7 @@ function buildPrintPage2(){
   const {calcs, totMin, ca} = CORE;
   let out = `<div class="ps-p2">`;
   out += `<table><colgroup><col style="width:34%"><col style="width:8%"><col style="width:16%"><col style="width:7%"><col style="width:10%"><col style="width:11%"><col style="width:14%"></colgroup>
-    <tr><td class="ps-title nb" style="font-size:11pt">M&amp;B · Kraftstoff · Start-/Landestrecken</td>
+    <tr><td class="ps-title nb" style="font-size:13pt">M&amp;B · Kraftstoff · Start-/Landestrecken</td>
       <td class="ps-lbl">Callsign</td><td>${esc(state.callsign)} · ${esc(ac.type)}</td>
       <td class="ps-lbl">Date</td><td>${esc(fmtDateDE(h.date))}</td>
       <td class="ps-lbl">DEP → DEST</td><td>${esc((h.dep||"").toUpperCase())} → ${esc((h.dest||"").toUpperCase())}</td></tr></table>`;
@@ -4683,13 +4709,14 @@ function buildPrintPage2(){
   wb += `<tr><td class="ps-lbl">Landemasse (LDM)</td><td class="tv">${W.ldm!=null?f1(W.ldm):"–"}</td><td class="tv">${W.ldm!=null?cg(W.ldmMom,W.ldm):"–"}</td><td>${W.ldm!=null?fmt0(W.ldmMom):"–"}</td></tr>`;
   wb += `</table>`;
   wb += W.checks.filter(c => !c.info).map(ck).join("");   /* „Fuel TO/LDG automatisch …“ nur am Bildschirm */
+  let envH = "";
   if (W.lim){
     let env = envelopeSVG(ac, W.lim, wbPoints(W));
     env = env.replace(/var\(--calc-bg\)/g,"#efefef").replace(/var\(--calc-ink\)/g,"#000")
              .replace(/var\(--muted\)/g,"#444").replace(/var\(--line\)/g,"#999")
              .replace(/var\(--accent\)/g,"#000").replace(/var\(--warn\)/g,"#000")
              .replace(/var\(--panel\)/g,"#fff");
-    wb += `<div class="ps-env">${env}</div>`;
+    envH = `<div class="ps-sub">Schwerpunktdiagramm</div><div class="ps-env">${env}</div>`;
   }
   /* Kraftstoffplanung */
   const FC = calcFuel(ac, totMin, ca.min);
@@ -4725,7 +4752,8 @@ function buildPrintPage2(){
       fu += ck({ok: FC.extra >= 0, txt: FC.extra >= 0 ? `Vorrat ≥ Mindestbedarf` : `Vorrat ${f1(-FC.extra)} l${galSfx(ac, -FC.extra)} UNTER Mindestbedarf — Flug so nicht antreten`});
     fu += `<div class="ps-ck" style="color:#444">Leistung ${esc(pwrLabel(ac, state.pwr))}</div>`;
   }
-  out += `<table class="ps-lay ps-sec"><tr><td class="nb" style="width:47%;vertical-align:top;text-align:left">${wb}</td><td class="nb" style="width:2%"></td><td class="nb" style="vertical-align:top;text-align:left">${fu}</td></tr></table>`;
+  out += `<table class="ps-lay ps-sec"><tr><td class="nb" style="width:37%;vertical-align:top;text-align:left">${wb}</td><td class="nb" style="width:1.5%"></td>`+
+    `<td class="nb" style="width:33%;vertical-align:top;text-align:left">${fu}</td><td class="nb" style="width:1.5%"></td><td class="nb" style="vertical-align:top;text-align:left">${envH}</td></tr></table>`;
   /* Start-/Landestrecken */
   const perfBlk = (key, title) => {
     if (!ac.perf || !ac.perf[key])
